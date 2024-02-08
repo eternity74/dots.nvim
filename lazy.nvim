@@ -1,0 +1,5 @@
+vim.g.mapleader = " "
+
+require("lazy").setup({
+{ "cppcp", dir = "c:/data/cppcp },
+})
