@@ -1,47 +1,5 @@
 return {
   {
-    "folke/which-key.nvim",
-    event = "VeryLazy",
-    init = function()
-      vim.o.timeout = true
-      vim.o.timeoutlen = 300
-    end,
-    opts = {
-      defaults = {
-        ["<leader>t"] = { name = "+test" },
-      },
-    },
-    config = function()
-      local wk = require("which-key")
-      wk.register({
-        f = {
-          name = "file",
-          f = { "<cmd>Telescope find_finds<cr>", "Find File" },
-          r = { "<cmd>Telescope oldfiles<cr>", "Open Recent File", noremap = false },
-          n = { "New File" },
-          e = "Edit File",
-          ["1"] = "which_key_ignore",
-          b = {
-            function()
-              print("bar")
-            end,
-            "Foobar",
-          },
-        },
-      }, { prefix = "<leader>" })
-    end,
-  },
-  {
-    "nvim-neo-tree/neo-tree.nvim",
-    branch = "v3.x",
-    dependencies = {
-      "nvim-lua/plenary.nvim",
-      "nvim-tree/nvim-web-devicons", -- not strictly required, but recommended
-      "MunifTanjim/nui.nvim",
-      -- "3rd/image.nvim", -- Optional image support in preview window: See `# Preview Mode` for more information
-    },
-  },
-  {
     "NeogitOrg/neogit",
     dependencies = {
       "nvim-lua/plenary.nvim", -- required
@@ -54,7 +12,7 @@ return {
     config = true,
   },
   {
-    "tpope/vim-fugitive",
+    "folke/which-key.nvim",
   },
   {
     "dhananjaylatkar/cscope_maps.nvim",
@@ -65,8 +23,62 @@ return {
       "nvim-tree/nvim-web-devicons", -- optional [for devicons in telescope or fzf]
     },
     opts = {
+      disable_maps = false,
+      skip_input_prompt = true,
+      prefix = "<C-Bslash>",
       -- USE EMPTY FOR DEFAULT OPTIONS
       -- DEFAULTS ARE LISTED BELOW
     },
+    --[[
+    config = function(opts)
+      require("cscope_maps").setup(opts)
+    end,
+    --]]
   },
-}
+  {
+    "tpope/vim-fugitive",
+  },
+  {
+    "nvim-lualine/lualine.nvim",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    config = function()
+      conf = require("lualine").get_config()
+      conf.sections.lualine_c = {
+        { "filename", path = 1 },
+      }
+      require("lualine").setup(conf)
+    end,
+  },
+  {
+    "tpope/vim-unimpaired",
+    lazy = false,
+  },
+  {
+    "alexghergh/nvim-tmux-navigation",
+    config = function()
+      local nvim_tmux_nav = require("nvim-tmux-navigation")
+
+      nvim_tmux_nav.setup({
+        disable_when_zoomed = true, -- defaults to false
+      })
+
+      vim.keymap.set("n", "<C-h>", nvim_tmux_nav.NvimTmuxNavigateLeft)
+      vim.keymap.set("n", "<C-j>", nvim_tmux_nav.NvimTmuxNavigateDown)
+      vim.keymap.set("n", "<C-k>", nvim_tmux_nav.NvimTmuxNavigateUp)
+      vim.keymap.set("n", "<C-l>", nvim_tmux_nav.NvimTmuxNavigateRight)
+      --vim.keymap.set("n", "<C-\\>", nvim_tmux_nav.NvimTmuxNavigateLastActive)
+      vim.keymap.set("n", "<C-Space>", nvim_tmux_nav.NvimTmuxNavigateNext)
+    end,
+  },
+  { "taybart/b64.nvim" },
+  {
+    "SirVer/ultisnips",
+    lazy = VeryLazy,
+    config = function()
+      vim.g.UltiSnipsEditSplit = "vertical"
+      vim.g.UltiSnipsSnippetsDir = "~/.snippets/"
+      vim.g.UltiSnipsSnippetDirectories = { "/home/wanchang.ryu/.snippets/" }
+      vim.g.UltiSnipsExpandTrigger = "<c-f>"
+    end,
+  },
+}  
