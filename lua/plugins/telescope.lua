@@ -43,7 +43,6 @@ function M.config()
     end
     --pickers[pickers.index]({ default_text = require("telescope.actions.state").get_current_line() })
   end
-
   telescope.setup({
     defaults = {
       mappings = {
@@ -73,12 +72,12 @@ end
 
 M.keys = {
   { "<leader>ff", "<cmd>Telescope find_files<cr>", desc = "find files" },
-  { "<leader>fc", "<cmd>Telescope find_configs<cr>", desc = "configs" },
+  { "<leader>fc", "<cmd>Telescope custom_pickers find_configs<cr>", desc = "configs" },
   {
     "<C-p>",
-    ":lua require'telescope'.extensions.find_configs.find_prj{}<CR>",
+    ":lua require'telescope'.extensions.custom_pickers.find_prj{}<CR>",
     desc = "find in prj",
   },
 }
 
-return M
+return M  
