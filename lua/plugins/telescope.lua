@@ -68,7 +68,7 @@ function M.config()
   })
 
   telescope.load_extension("fzf")
-  telescope.load_extension("find_configs")
+  telescope.load_extension("custom_pickers")
 end
 
 M.keys = {
