@@ -17,20 +17,15 @@ local opts = {
   performance = {
     rtp = {
       disabled_plugins = {
-        "conform",
-        "mason",
+--        "conform",
+--        "mason",
       },
     },
   },
 }
 
-require("lazy").setup("plugins", opts)
 require("options")
-
-vim.o.tabstop = 2
-vim.o.expandtab = true
-vim.o.softtabstop = 2
-vim.o.shiftwidth = 2
+require("lazy").setup("plugins", opts)
 
 if vim.env.TMUX then
   local i = vim.env.TMUX_UNIQUE:find(vim.env.TMUX_PANE, nil, true)
@@ -38,17 +33,3 @@ if vim.env.TMUX then
   vim.o.shada = vim.o.shada .. ",n~/.local/state/nvim/shada/tmux-" .. session_name .. ".shada"
   --print(vim.o.shada)
 end
-
-vim.api.nvim_create_autocmd({ "BufRead" }, {
-  pattern = { "COMMIT_EDITMSG" },
-  command = "set tw=72 colorcolumn=51,+1",
-})
-
--- clang-format conf
-vim.g.clang_format_path = "/home/wanchang.ryu/bin/clang-format"
-vim.keymap.set(
-  { "n", "v" },
-  "<F5>",
-  ":py3f /home/wanchang.ryu/wtools/bin/clang-format.py<CR>",
-  { noremap = true }
-)

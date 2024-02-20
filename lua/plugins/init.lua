@@ -74,6 +74,9 @@ return {
   {
     "SirVer/ultisnips",
     lazy = VeryLazy,
+    init = function()
+      vim.g.UltiSnipsExpandTrigger = "<c-f>"
+    end,
     config = function()
       vim.g.UltiSnipsEditSplit = "vertical"
       vim.g.UltiSnipsSnippetsDir = "~/.snippets/"

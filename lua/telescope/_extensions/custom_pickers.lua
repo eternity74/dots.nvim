@@ -9,7 +9,7 @@ return require("telescope").register_extension({
     find_configs = function(opts)
       opts = opts or {}
       local config_dir = vim.fn.stdpath("config")
-      local cmd = vim.fn.has("macunix") and string.format("find %s -type f", config_dir)
+      local cmd = vim.fn.has("macunix") and string.format("find %s -not -path \"%s/.git/*\" -type f", config_dir, config_dir)
         or string.format("where /r %s *", config_dir)
       local out = {}
       print(cmd)
