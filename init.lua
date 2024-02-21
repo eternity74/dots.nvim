@@ -17,8 +17,8 @@ local opts = {
   performance = {
     rtp = {
       disabled_plugins = {
---        "conform",
---        "mason",
+        "conform",
+        "mason",
       },
     },
   },

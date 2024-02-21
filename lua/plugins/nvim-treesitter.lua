@@ -56,7 +56,7 @@ local M = {
       "javascript",
       "jsdoc",
       "json",
-     "jsonc",
+      "jsonc",
       "lua",
       "luadoc",
       "luap",
@@ -108,4 +108,4 @@ local M = {
   end,
 }
 
-return { M }      
+return { M }

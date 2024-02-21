@@ -84,4 +84,4 @@ return {
       vim.g.UltiSnipsExpandTrigger = "<c-f>"
     end,
   },
-}  
+}
