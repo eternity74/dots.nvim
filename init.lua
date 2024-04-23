@@ -33,3 +33,9 @@ if vim.env.TMUX then
   vim.o.shada = vim.o.shada .. ",n~/.local/state/nvim/shada/tmux-" .. session_name .. ".shada"
   --print(vim.o.shada)
 end
+
+vim.cmd([[
+highlight ExtraWhitespace ctermbg=red guibg=red
+match ExtraWhitespace /\s\+$/
+set list listchars=tab:›∙,trail:∙,extends:$,nbsp:= 
+]])

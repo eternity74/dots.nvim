@@ -27,9 +27,9 @@ function M.config()
 
   pickers.cycle = function(prompt_bufnr)
     local current_picker = require("telescope.actions.state").get_current_picker(prompt_bufnr)
-    print(current_picker.finder)
-    print("builtin.oldfiles = " .. tostring(builtin.oldfiles))
-    print("Is oldfiles =" .. tostring(current_picker == builtin.oldfiles))
+    -- print(current_picker.finder)
+    -- print("builtin.oldfiles = " .. tostring(builtin.oldfiles))
+    -- print("Is oldfiles =" .. tostring(current_picker == builtin.oldfiles))
     if pickers.index >= #pickers then
       pickers.index = 1
     else
@@ -39,10 +39,13 @@ function M.config()
       old_picker:find({ default_text = require("telescope.actions.state").get_current_line() })
     else
       old_picker = current_picker
-      builtin.oldfiles({ default_text = require("telescope.actions.state").get_current_line() })
+      builtin.oldfiles({
+        default_text = require("telescope.actions.state").get_current_line(),
+      })
     end
     --pickers[pickers.index]({ default_text = require("telescope.actions.state").get_current_line() })
   end
+
   telescope.setup({
     defaults = {
       mappings = {
@@ -54,6 +57,9 @@ function M.config()
         n = {
           ["<C-f>"] = pickers.cycle,
         },
+      },
+      preview = {
+        hide_on_startup = true, -- hide previewer when picker starts
       },
     },
     extensions = {

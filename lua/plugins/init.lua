@@ -84,4 +84,23 @@ return {
       vim.g.UltiSnipsExpandTrigger = "<c-f>"
     end,
   },
+  {
+    "derekwyatt/vim-fswitch",
+    lazy = false,
+    config = function()
+      vim.api.nvim_create_autocmd({ "BufEnter" }, {
+        pattern = { "*.h" },
+        callback = function(ev)
+          vim.b.fswitchdst = "cc"
+        end,
+      })
+      vim.api.nvim_create_autocmd({ "BufEnter" }, {
+        pattern = { "*.cc" },
+        callback = function(ev)
+          vim.b.fswitchdst = "h"
+        end,
+      })
+      vim.api.nvim_create_user_command("A", "FSHere", {})
+    end,
+  },
 }

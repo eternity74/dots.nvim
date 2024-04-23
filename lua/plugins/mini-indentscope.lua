@@ -26,6 +26,13 @@ local M = {
       end,
     })
   end,
+  keys = {
+    {
+      "<Space>im",
+      "<cmd>lua vim.b.miniindentscope_disable=not vim.b.miniindentscope_disable<cr>",
+      desc = "Toggle mini indent scope",
+    },
+  },
 }
 
 return M
