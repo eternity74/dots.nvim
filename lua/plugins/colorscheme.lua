@@ -1,4 +1,10 @@
-return {
+local tokyonight = {
+  "folke/tokyonight.nvim",
+  lazy = false,
+  priority = 1000,
+}
+
+local gruvbox = {
   { "ellisonleao/gruvbox.nvim", priority = 1000, config = function ()
     require("gruvbox").setup({
       terminal_colors = true, -- add neovim terminal colors
@@ -27,3 +33,5 @@ return {
     vim.cmd("colorscheme gruvbox")
   end, opts = ... },
 }
+
+return tokyonight

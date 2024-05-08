@@ -103,4 +103,17 @@ return {
       vim.api.nvim_create_user_command("A", "FSHere", {})
     end,
   },
+  {
+    "kelly-lin/telescope-ag",
+    dependencies = { "nvim-telescope/telescope.nvim" },
+  },
+  {
+    'stevearc/aerial.nvim',
+    opts = {},
+    -- Optional dependencies
+    dependencies = {
+      "nvim-treesitter/nvim-treesitter",
+      "nvim-tree/nvim-web-devicons"
+    },
+  },
 }
