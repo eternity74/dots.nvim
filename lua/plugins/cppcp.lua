@@ -1,7 +1,8 @@
 return {
   {
-    "cppcp.nvim",
-    dir = "c:/data/cppcp",
+    "eternity74/cppcp",
+    --"cppcp.nvim",
+    -- dir = "c:/data/cppcp",
     dependencies = {
       {
         "folke/which-key.nvim",
