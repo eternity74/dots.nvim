@@ -9,13 +9,16 @@ return require("telescope").register_extension({
     find_configs = function(opts)
       opts = opts or {}
       local config_dir = vim.fn.stdpath("config")
-      local cmd = vim.fn.has("macunix")
+      local cmd = (vim.fn.has("macunix") == 1)
           and string.format('find %s -not -path "%s/.git/*" -type f', config_dir, config_dir)
         or string.format("where /r %s *", config_dir)
       local out = {}
       print(cmd)
       for l in vim.fn.system(cmd):gmatch("[^\r\n]+") do
-        table.insert(out, { l:sub(config_dir:len() + 2), l })
+        local name = l:sub(config_dir:len() + 2)
+        if not name:match "^.git" then
+          table.insert(out, { name, l })
+        end
       end
 
       pickers
