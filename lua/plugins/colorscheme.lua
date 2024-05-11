@@ -5,7 +5,9 @@ local tokyonight = {
 }
 
 local gruvbox = {
-  { "ellisonleao/gruvbox.nvim", priority = 1000, config = function ()
+  "ellisonleao/gruvbox.nvim",
+  priority = 1000,
+  config = function()
     require("gruvbox").setup({
       terminal_colors = true, -- add neovim terminal colors
       undercurl = true,
@@ -31,7 +33,17 @@ local gruvbox = {
       transparent_mode = false,
     })
     vim.cmd("colorscheme gruvbox")
-  end, opts = ... },
+  end,
+  opts = ...,
 }
 
-return tokyonight
+local dracula = {
+  "Mofiqul/dracula.nvim",
+  lazy = false,
+  config = function()
+    require("dracula").setup({})
+    vim.cmd.colorscheme("dracula")
+  end,
+}
+
+return dracula

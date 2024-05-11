@@ -39,5 +39,3 @@ highlight ExtraWhitespace ctermbg=red guibg=red
 match ExtraWhitespace /\s\+$/
 set list listchars=tab:›∙,trail:∙,extends:$,nbsp:= 
 ]])
-
-vim.cmd[[colorscheme tokyonight-night]]
