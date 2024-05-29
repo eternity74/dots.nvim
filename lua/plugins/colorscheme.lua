@@ -41,9 +41,15 @@ local dracula = {
   "Mofiqul/dracula.nvim",
   lazy = false,
   config = function()
-    require("dracula").setup({})
-    vim.cmd.colorscheme("dracula")
+    require("dracula").setup({
+      overrides = {
+        TreesitterContext = { bg = "#44475A"},
+        -- TreesitterContext = { bg = "#7C7F8A"},
+        },
+      })
+    vim.cmd.colorscheme("dracula-soft")
   end,
 }
 
+--return tokyonight
 return dracula
