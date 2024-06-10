@@ -2,6 +2,10 @@ local tokyonight = {
   "folke/tokyonight.nvim",
   lazy = false,
   priority = 1000,
+  config = function()
+    require("tokyonight").setup({})
+    vim.cmd("colorscheme tokyonight-night")
+  end,
 }
 
 local gruvbox = {
@@ -37,8 +41,10 @@ local gruvbox = {
   opts = ...,
 }
 
+local catppuccin = { "catppuccin/nvim", name = "catppuccin", priority = 1000 }
+
 local dracula = {
-  "Mofiqul/dracula.nvim",
+  "binhtran432k/dracula.nvim",
   lazy = false,
   config = function()
     require("dracula").setup({
@@ -51,5 +57,5 @@ local dracula = {
   end,
 }
 
---return tokyonight
-return dracula
+--return dracula
+return tokyonight

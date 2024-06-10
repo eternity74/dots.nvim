@@ -12,12 +12,8 @@ return {
     config = true,
   },
   {
-    "folke/which-key.nvim",
-  },
-  {
     "dhananjaylatkar/cscope_maps.nvim",
     dependencies = {
-      "folke/which-key.nvim", -- optional [for whichkey hints]
       "nvim-telescope/telescope.nvim", -- optional [for picker="telescope"]
       "ibhagwan/fzf-lua", -- optional [for picker="fzf-lua"]
       "nvim-tree/nvim-web-devicons", -- optional [for devicons in telescope or fzf]
@@ -85,25 +81,6 @@ return {
     end,
   },
   {
-    "derekwyatt/vim-fswitch",
-    lazy = false,
-    config = function()
-      vim.api.nvim_create_autocmd({ "BufEnter" }, {
-        pattern = { "*.h" },
-        callback = function(ev)
-          vim.b.fswitchdst = "cc"
-        end,
-      })
-      vim.api.nvim_create_autocmd({ "BufEnter" }, {
-        pattern = { "*.cc" },
-        callback = function(ev)
-          vim.b.fswitchdst = "h"
-        end,
-      })
-      vim.api.nvim_create_user_command("A", "FSHere", {})
-    end,
-  },
-  {
     "kelly-lin/telescope-ag",
     dependencies = { "nvim-telescope/telescope.nvim" },
   },
@@ -115,5 +92,16 @@ return {
       "nvim-treesitter/nvim-treesitter",
       "nvim-tree/nvim-web-devicons"
     },
+  },
+  {
+    "NStefan002/screenkey.nvim",
+    cmd = "Screenkey",
+    version = "*",
+    opts = {
+      win_opts = {
+        height = 1
+      }
+    },
+    config = true,
   },
 }

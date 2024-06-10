@@ -12,9 +12,14 @@ return {
       filtered_items = {
       visible = true,
       show_hidden_count = true,
-      hide_dotfiles = false,
+      hide_dotfiles = true,
+      },
+      window = {
+        mappings = {
+          ["/"] = "noop",
+        }
       }
-    }
+    },
   },
   keys = {
     { "<C-n>", ":Neotree toggle<CR>", desc = "Neotree toggle" },
