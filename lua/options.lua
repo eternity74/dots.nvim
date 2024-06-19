@@ -59,3 +59,19 @@ echom s:parents s:merge_base
   )
 end, {})
 
+-- for chromium source navigation
+function MyIncludeExpr(fname)
+    local name = string.gsub(fname, "^//", "")
+    if vim.fn.isdirectory(name) ~= 0 then
+        name = name .. "/BUILD.gn"
+    end
+    return name
+end
+
+vim.api.nvim_create_autocmd('FileType', {
+    pattern = { 'gn' },
+    callback = function(a)
+      vim.o.includeexpr = "v:lua.MyIncludeExpr(v:fname)"
+    end,
+})
+--
