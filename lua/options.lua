@@ -71,7 +71,7 @@ end
 vim.api.nvim_create_autocmd('FileType', {
     pattern = { 'gn' },
     callback = function(a)
-      vim.o.includeexpr = "v:lua.MyIncludeExpr(v:fname)"
+      vim.opt_local.includeexpr = "v:lua.MyIncludeExpr(v:fname)"
     end,
 })
 --

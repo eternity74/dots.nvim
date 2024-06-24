@@ -42,6 +42,9 @@ return {
       conf.sections.lualine_c = {
         { "filename", path = 1 },
       }
+      conf.inactive_sections.lualine_c = {
+        { "filename", path = 1 },
+      }
       require("lualine").setup(conf)
     end,
   },
@@ -85,23 +88,8 @@ return {
     dependencies = { "nvim-telescope/telescope.nvim" },
   },
   {
-    'stevearc/aerial.nvim',
-    opts = {},
-    -- Optional dependencies
-    dependencies = {
-      "nvim-treesitter/nvim-treesitter",
-      "nvim-tree/nvim-web-devicons"
-    },
-  },
-  {
-    "NStefan002/screenkey.nvim",
-    cmd = "Screenkey",
-    version = "*",
-    opts = {
-      win_opts = {
-        height = 1
-      }
-    },
+    "Mr-LLLLL/interestingwords.nvim",
+    opts = { scroll_center = false },
     config = true,
   },
 }
