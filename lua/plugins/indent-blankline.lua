@@ -26,6 +26,7 @@ local M = {
   keys = {
     { "<Space>it", "<cmd>IBLToggle<cr>", desc = "Toggle indent-blankline" },
   },
+  lazy = false,
 }
 
 return M

@@ -1,7 +1,7 @@
 return {
   "nvim-treesitter/nvim-treesitter-context",
   event = { "BufReadPost", "BufWritePost", "BufNewFile" },
-  enabled = true,
+  enabled = false,
   opts = {
     mode = "cursor",
     max_lines = 3,

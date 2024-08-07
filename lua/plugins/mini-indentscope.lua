@@ -33,6 +33,7 @@ local M = {
       desc = "Toggle mini indent scope",
     },
   },
+  lazy =false,
 }
 
 return M

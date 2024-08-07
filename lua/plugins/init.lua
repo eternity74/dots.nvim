@@ -91,5 +91,9 @@ return {
     "Mr-LLLLL/interestingwords.nvim",
     opts = { scroll_center = false },
     config = true,
+    enabled = false,
   },
+  {
+    "vim-scripts/Mark--Karkat",
+  }
 }

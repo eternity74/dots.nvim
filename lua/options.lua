@@ -74,4 +74,12 @@ vim.api.nvim_create_autocmd('FileType', {
       vim.opt_local.includeexpr = "v:lua.MyIncludeExpr(v:fname)"
     end,
 })
+
+-- enable spell check in git commit message
+vim.api.nvim_create_autocmd('FileType', {
+    pattern = {'gitcommit'},
+    callback = function()
+      vim.opt_local.spell = true
+    end,
+})
 --

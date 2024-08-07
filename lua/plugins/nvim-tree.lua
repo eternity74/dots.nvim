@@ -13,7 +13,6 @@ local function my_on_attach(bufnr)
 -- custom mappings
   vim.keymap.set('n', 'w', function()
     local view = require'nvim-tree.view'
-    print (view.View.adaptive_size)
     view.View.adaptive_size = not view.View.adaptive_size
     if view.View.adaptive_size then
       view.grow_from_content()
@@ -21,7 +20,15 @@ local function my_on_attach(bufnr)
       view.resize(min_width)
     end
   end, opts('Expand width'))
+
+  vim.keymap.set('n', '<Space>', function()
+    local finders_find_file = require "nvim-tree.actions.finders.find-file"
+    local bufnr = vim.fn.bufnr('#', true)
+    local filename = vim.api.nvim_buf_get_name(vim.fn.bufnr('#', true))
+    finders_find_file.fn(filename)
+  end, opts('Find File'))
 end
+
 local nvim_tree = {
   "nvim-tree/nvim-tree.lua",
   version = "*",
@@ -67,12 +74,19 @@ local nvim_tree = {
           },
         },
       },
+      actions = {
+        open_file = {
+          window_picker = { enable = false }
+        }
+      },
+      filters = {
+        enable = false,
+      },
     }
     require("nvim-tree.view").View.adaptive_size = false
   end,
   keys = {
     { "<C-n>", ":NvimTreeToggle<CR>", desc = "NvimTreeToogle" },
-    { "<C-m>", ":NvimTreeFindFileToggle<CR>", desc = "NvimTreeFindFileToggle" },
   },
 }
 return nvim_tree
