@@ -1,6 +1,7 @@
 local finders = require("telescope.finders")
 local pickers = require("telescope.pickers")
 local conf = require("telescope.config").values
+local actions = require("telescope.actions")
 local actions_state = require("telescope.actions.state")
 local builtin = require("telescope.builtin")
 
@@ -39,6 +40,12 @@ return require("telescope").register_extension({
           attach_mappings = function(prompt_bufnr, map)
             map("i", "<C-j>", "move_selection_next")
             map("i", "<C-k>", "move_selection_previous")
+            map("i", "<CR>", function(prompt_bufnr)
+              local selection = actions_state.get_selected_entry()
+              actions.close(prompt_bufnr)
+              -- print(selection.value)
+              vim.cmd("edit " .. selection.value)
+            end)
             return true
           end,
         })
