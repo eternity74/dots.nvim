@@ -37,16 +37,16 @@ exec "e " . s:filename
 let merge_win = win_getid()
 let s:parents = split(system("git log -1 --merges --pretty=%p"))
 let s:merge_base = system("git merge-base " . s:parents[0] . " " . s:parents[1])
-execute 'Gvdiff' s:parents[0]
+execute 'Gvdiff' s:parents[1]
 let p0_buf = bufnr("%")
 execute 'Gvdiff' s:merge_base
 let base_buf = bufnr("%")
-execute 'Gvdiff' s:parents[1]
+execute 'Gvdiff' s:parents[0]
 let p1_buf = bufnr("%")
 call win_gotoid(merge_win)
 exec "wincmd J"
 exec "wincmd w"
-echom s:parents s:merge_base
+echom "first-parent:" . s:parents[0] . " second-parent:" . s:parents[1] . " merge-base:" . s:merge_base
 "echom p0_buf p1_buf base_buf
 
 "let current = bufnr("%")

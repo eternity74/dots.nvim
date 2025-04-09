@@ -24,7 +24,7 @@ local M = {
   },
   main = "ibl",
   keys = {
-    { "<Space>it", "<cmd>IBLToggle<cr>", desc = "Toggle indent-blankline" },
+    { "<Space>tt", "<cmd>IBLToggle<cr>", desc = "Toggle indent-blankline" },
   },
   lazy = false,
 }
