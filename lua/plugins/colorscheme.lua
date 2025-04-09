@@ -3,8 +3,10 @@ local tokyonight = {
   lazy = false,
   priority = 1000,
   config = function()
-    require("tokyonight").setup({})
-    vim.cmd("colorscheme tokyonight-moon")
+    require("tokyonight").setup({ })
+    vim.cmd("colorscheme tokyonight-night")
+    --vim.cmd([[:highlight DiffText gui=bold guibg=#0e1430]])
+    vim.cmd([[:highlight DiffText gui=bold]])
   end,
 }
 
@@ -57,5 +59,15 @@ local dracula = {
   end,
 }
 
---return dracula
-return tokyonight
+local onedark = {
+  "https://github.com/navarasu/onedark.nvim",
+  config = function()
+    require('onedark').setup {
+      style = 'dark'
+    }
+    vim.cmd("colorscheme onedark")
+  end
+}
+
+-- return tokyonight
+return onedark
