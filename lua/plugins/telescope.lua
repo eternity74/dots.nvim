@@ -1,7 +1,7 @@
 local M = {
   "nvim-telescope/telescope.nvim",
-  tag = "0.1.5",
-  branch = "0.1.x",
+  -- tag = "0.1.5",
+  -- branch = "0.1.x",
   dependencies = {
     { "nvim-lua/plenary.nvim" },
     {
@@ -41,6 +41,7 @@ function M.config()
       old_picker = current_picker
       builtin.oldfiles({
         default_text = require("telescope.actions.state").get_current_line(),
+        path_display = { truncate = 1 },
       })
     end
     --pickers[pickers.index]({ default_text = require("telescope.actions.state").get_current_line() })

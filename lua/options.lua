@@ -8,6 +8,10 @@ vim.o.shiftwidth = 2
 vim.o.ic = true
 vim.o.makeprg = m
 
+vim.g.ai_plugin = "codecompanion"
+-- vim.g.ai_plugin = "copilot-chat"
+vim.g.ai_cmp = false
+
 vim.api.nvim_create_autocmd({ "BufRead" }, {
   pattern = { "COMMIT_EDITMSG" },
   command = "set tw=72 colorcolumn=51,+1",
@@ -60,12 +64,26 @@ echom "first-parent:" . s:parents[0] . " second-parent:" . s:parents[1] . " merg
 end, {})
 
 -- for chromium source navigation
+function find_chromium_root(fname)
+    local file = vim.fn.expand("%:p")
+    local dir = vim.fn.fnamemodify(file, ":h")
+    while dir ~= "/" do
+        local deps_path = dir .. "/chrome/VERSION"
+        if vim.fn.filereadable(deps_path) == 1 then
+            return dir
+        end
+        dir = vim.fn.fnamemodify(dir, ":h")
+    end
+    return nil
+end
+
 function MyIncludeExpr(fname)
     local name = string.gsub(fname, "^//", "")
     if vim.fn.isdirectory(name) ~= 0 then
         name = name .. "/BUILD.gn"
     end
-    return name
+    local root = find_chromium_root(fname)
+    return root .. "/" .. name
 end
 
 vim.api.nvim_create_autocmd('FileType', {

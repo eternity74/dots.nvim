@@ -6,8 +6,7 @@ return {
       "sindrets/diffview.nvim", -- optional - Diff integration
 
       -- Only one of these is needed, not both.
-      "nvim-telescope/telescope.nvim", -- optional
-      "ibhagwan/fzf-lua", -- optional
+      "ibhagwan/fzf-lua",
     },
     config = true,
   },
@@ -34,24 +33,7 @@ return {
   {
     "tpope/vim-fugitive",
   },
-  {
-    "nvim-lualine/lualine.nvim",
-    dependencies = { "nvim-tree/nvim-web-devicons" },
-    config = function()
-      conf = require("lualine").get_config()
-      conf.sections.lualine_c = {
-        { "filename", path = 1 },
-      }
-      conf.inactive_sections.lualine_c = {
-        { "filename", path = 1 },
-      }
-      require("lualine").setup(conf)
-    end,
-  },
-  {
-    "tpope/vim-unimpaired",
-    lazy = false,
-  },
+  { "tpope/vim-unimpaired", lazy = false },
   {
     "alexghergh/nvim-tmux-navigation",
     config = function()
@@ -66,12 +48,13 @@ return {
       vim.keymap.set("n", "<C-k>", nvim_tmux_nav.NvimTmuxNavigateUp)
       vim.keymap.set("n", "<C-l>", nvim_tmux_nav.NvimTmuxNavigateRight)
       --vim.keymap.set("n", "<C-\\>", nvim_tmux_nav.NvimTmuxNavigateLastActive)
-      vim.keymap.set("n", "<C-Space>", nvim_tmux_nav.NvimTmuxNavigateNext)
+      --vim.keymap.set("n", "<C-Space>", nvim_tmux_nav.NvimTmuxNavigateNext)
     end,
   },
-  { "taybart/b64.nvim" },
+  --{ "taybart/b64.nvim" },
   {
     "SirVer/ultisnips",
+    enabled = false,
     lazy = VeryLazy,
     init = function()
       vim.g.UltiSnipsExpandTrigger = "<c-f>"
@@ -95,5 +78,12 @@ return {
   },
   {
     "vim-scripts/Mark--Karkat",
-  }
+  },
+  {
+    "modille/groovy.vim"
+  },
+  -- input popup
+  -- { "stevearc/dressing.nvim" },
+  -- shortcut key suggestion
+  { "folke/which-key.nvim" },
 }

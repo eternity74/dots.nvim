@@ -3,10 +3,16 @@ local tokyonight = {
   lazy = false,
   priority = 1000,
   config = function()
-    require("tokyonight").setup({ })
-    vim.cmd("colorscheme tokyonight-night")
+    require("tokyonight").setup({
+      on_colors = function(colors)
+        -- colors.fg_dark = "#a9b1d6"
+        colors.fg = "#ebebeb"
+        colors.fg_dark = "#f2f3f5"
+      end
+    })
     --vim.cmd([[:highlight DiffText gui=bold guibg=#0e1430]])
-    vim.cmd([[:highlight DiffText gui=bold]])
+    vim.cmd[[:highlight DiffText gui=bold]]
+    vim.cmd[[colorscheme tokyonight-moon]]
   end,
 }
 
@@ -43,7 +49,15 @@ local gruvbox = {
   opts = ...,
 }
 
-local catppuccin = { "catppuccin/nvim", name = "catppuccin", priority = 1000 }
+local catppuccin = {
+  "catppuccin/nvim",
+  name = "catppuccin",
+  priority = 1000,
+  config = function()
+    require("catppuccin").setup{}
+    vim.cmd.colorscheme("catppuccin")
+  end,
+}
 
 local dracula = {
   "binhtran432k/dracula.nvim",
@@ -63,11 +77,31 @@ local onedark = {
   "https://github.com/navarasu/onedark.nvim",
   config = function()
     require('onedark').setup {
-      style = 'dark'
+      style = 'dark',
     }
-    vim.cmd("colorscheme onedark")
+    vim.cmd.colorscheme("onedark")
   end
 }
 
--- return tokyonight
-return onedark
+local jonedark = {
+  "https://github.com/joshdick/onedark.vim",
+  config = function()
+    vim.cmd.colorscheme("onedark")
+  end
+}
+
+local vscode = {
+  "Mofiqul/vscode.nvim",
+  config = function()
+    require("vscode").setup{}
+    vim.cmd.colorscheme("vscode")
+  end,
+}
+
+-- return vscode
+return tokyonight
+--return onedark
+-- return jonedark
+-- return dracula
+-- return catppuccin
+-- return gruvbox

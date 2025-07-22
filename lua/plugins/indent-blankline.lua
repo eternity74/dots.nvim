@@ -24,7 +24,7 @@ local M = {
   },
   main = "ibl",
   keys = {
-    { "<Space>tt", "<cmd>IBLToggle<cr>", desc = "Toggle indent-blankline" },
+    { "<Space>tt", "<cmd>IBLToggle<cr><cmd>lua vim.b.miniindentscope_disable=not vim.b.miniindentscope_disable<cr>", desc = "Toggle indent-blankline" },
   },
   lazy = false,
 }

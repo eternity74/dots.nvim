@@ -27,6 +27,14 @@ local function my_on_attach(bufnr)
     local filename = vim.api.nvim_buf_get_name(vim.fn.bufnr('#', true))
     finders_find_file.fn(filename)
   end, opts('Find File'))
+
+  vim.keymap.set('n', '<C-Space>', function()
+    local finders_find_file = require "nvim-tree.actions.finders.find-file"
+    local bufnr = vim.fn.bufnr('#', true)
+    local filename = vim.api.nvim_buf_get_name(vim.fn.bufnr('#', true))
+    require("nvim-tree").change_root(filename, bufnr)
+    finders_find_file.fn(filename)
+  end, opts('Find File'))
 end
 
 local nvim_tree = {
@@ -37,6 +45,7 @@ local nvim_tree = {
     "nvim-tree/nvim-web-devicons",
   },
   config = function()
+    vim.opt.termguicolors = true
     require("nvim-tree").setup {
       on_attach = my_on_attach,
       sort_by = "case_sensitive",
@@ -73,6 +82,9 @@ local nvim_tree = {
             },
           },
         },
+      },
+      git = {
+        enable = false,
       },
       actions = {
         open_file = {
