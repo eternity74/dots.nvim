@@ -1,0 +1,10 @@
+{
+  "name": "personal-snippets",
+  "contributes": {
+    "snippets": [
+      { "language": "cc", "path": "./cc.json" },
+      { "language": "gitcommit", "path": "./gitcommit.json" },
+      { "language": "all", "path": "./all.json" }
+    ]
+  }
+}
