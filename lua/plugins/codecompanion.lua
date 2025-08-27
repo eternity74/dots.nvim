@@ -157,6 +157,16 @@ local function make_adapter_name(model_name)
   return "copilot [" .. model_name .. "]" .. multiplier_str
 end
 
+local function get_copilot_adapter(name, id)
+  local adapters = require("codecompanion.adapters")
+  return adapters.extend("copilot", {
+      name = name,
+      schema = {
+        model = { default = id },
+      }
+    })
+end
+
 local function build_adapters(models)
   local adapters = require("codecompanion.adapters")
   local custom_adapters = {
@@ -166,12 +176,7 @@ local function build_adapters(models)
   }
   for _, item in pairs(models) do
     adapter = make_adapter_name(item.name)
-    custom_adapters[adapter] = adapters.extend("copilot", {
-      name = adapter,
-      schema = {
-        model = { default = item.id },
-      }
-    })
+    custom_adapters[adapter] = get_copilot_adapter(adapter, item.id)
   end
   return custom_adapters
 end
@@ -197,6 +202,11 @@ local function get_copilot_models()
       sync = false,
       headers = headers,
       callback = function(response)
+        if false then
+          local file = io.open("output.json", "w")
+          file:write(response.body)
+          file:close()
+        end
         local ok, json = pcall(vim.json.decode, response.body)
         vim.schedule(function()
           models = {}
@@ -263,23 +273,23 @@ return {
       local copilot = adapters.resolve("copilot")
 
       local bootstrap_models = {
-        { id = "gpt-4.1", name = "GPT-4.1" },
+        { id = "gemini-2.5-pro", name = "Gemini 2.5 Pro" },
       }
       get_copilot_stats()
       models = get_copilot_models() or bootstrap_models
-      local model_default = get_key("selected_model") or bootstrap_models[1].name
+      local model_default = get_key("selected_model") or bootstrap_models[1]
       opts.adapters = build_adapters(models)
       opts.inline = {layout = "buffer"}
       opts.strategies = {
         chat = {
-          adapter = "copilot",  --make_adapter_name(model_default),
+          adapter = get_copilot_adapter(make_adapter_name(model_default.name), model_default.id),
           roles = {
             llm = "  Copilot Chat",
             user = "wanchnag.ryu"
           },
           streaming = true,
         },
-        inline = { adapter = "copilot" } -- make_adapter_name(model_default) },
+        inline = { adapter = get_copilot_adapter(make_adapter_name(model_default.name), model_default.id) },
       }
       opts.display = {
         chat = {
@@ -309,7 +319,7 @@ return {
         group = group,
         callback = function(request)
           if request.data.adapter then
-            set_key("selected_model", request.data.adapter.model.name)
+            set_key("selected_model", { id = request.data.adapter.model.id, name = request.data.adapter.model.name })
           end
         end,
       })
