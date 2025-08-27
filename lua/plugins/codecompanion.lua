@@ -154,7 +154,7 @@ local function make_adapter_name(model_name)
   if multiplier ~= nil then
     multiplier_str = " (" .. multiplier .. "🏆)"
   end
-  return "copilot [" .. model_name .. "]" .. multiplier_str
+  return model_name .. multiplier_str
 end
 
 local function get_copilot_adapter(name, id)
@@ -225,6 +225,7 @@ local function get_copilot_models()
   return nil
 end
 
+local copilot_stats = get_key("copilot_stats") or "Premium interaction: N/A"
 local function get_copilot_stats()
   local ok, response = pcall(function()
     return curl.get("https://api.github.com/copilot_internal/user", {
@@ -239,13 +240,10 @@ local function get_copilot_stats()
         vim.schedule(function()
           local premium = json.quota_snapshots.premium_interactions
           local used = premium.percent_remaining
-          vim.notify(
-            string.format(
+          set_key("copilot_stats", string.format(
               "Premium interaction: %d / %d",
               premium.entitlement - premium.remaining,
-              premium.entitlement),
-              vim.log.levels.INFO
-            )
+              premium.entitlement))
         end)
       end
     })
@@ -293,7 +291,7 @@ return {
       }
       opts.display = {
         chat = {
-          intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
+          intro_message = copilot_stats,
           -- Change to true to show the current model
           -- show_settings = true,
           -- start_in_insert_mode = true,
