@@ -135,6 +135,7 @@ local function get_copilot_adapter(model)
   local adapters = require("codecompanion.adapters")
   return adapters.extend("copilot", {
       name = model.name,
+      type = "http",
       billing = model.billing or "0",
       schema = {
         model = { default = model.id },
@@ -143,7 +144,6 @@ local function get_copilot_adapter(model)
 end
 
 local function build_adapters(models)
-  local adapters = require("codecompanion.adapters")
   local custom_adapters = {
     opts = {
       show_defaults = false,
@@ -193,7 +193,8 @@ local function get_copilot_models()
   end
   fetch_copilot_token(function(copilot_token)
     local config = require("codecompanion.config")
-    local copilot = require("codecompanion.adapters.copilot")
+    local adapters = require("codecompanion.adapters")
+    local copilot = adapters.resolve("copilot")
     local headers = vim.deepcopy(copilot.headers)
     headers["Authorization"] = "Bearer " .. copilot_token
     headers["X-GitHub-Api-Version"] = "2025-07-16" -- it provides billing info
@@ -218,7 +219,7 @@ local function get_copilot_models()
             end
             set_key("copilot_models", models)
             set_key("copilot_models_time", os.time())
-            config.adapters = vim.deepcopy(build_adapters(models))
+            config.adapters.http = vim.deepcopy(build_adapters(models))
           end)
         end
       })
@@ -280,7 +281,9 @@ return {
       get_copilot_stats()
       models = get_copilot_models() or bootstrap_models
       local model_default = get_key("selected_model") or bootstrap_models[1]
-      opts.adapters = build_adapters(models)
+      opts.adapters = {
+        http = build_adapters(models)
+      }
       opts.inline = {layout = "buffer"}
       opts.strategies = {
         chat = {
@@ -312,7 +315,7 @@ return {
                     end,
                   }
                 end
-                local adapters = vim.deepcopy(config.adapters)
+                local adapters = vim.deepcopy(config.adapters.http)
                 local current_adapter = chat.adapter.name
                 local current_model = vim.deepcopy(chat.adapter.schema.model.default)
 
@@ -326,7 +329,13 @@ return {
                   end)
                   :totable()
                 table.sort(adapters_list, function(a, b)
-                    return a.billing < b.billing
+                  if a.billing == 0 and b.billing == 0 then
+                    return a.name < b.name
+                  end
+                  if a.billing == 0 or b.billing == 0 then
+                    return a.billing == 0
+                  end
+                  return a.name < b.name
                 end)
                 vim.ui.select(adapters_list, select_opts("Select Adapter", current_adapter), function(selected)
                   if not selected or selected.name == current_adapter then
@@ -377,6 +386,7 @@ return {
       require('codecompanion').setup(opts)
       require('plugins.codecompanion.utils.extmarks').setup()
 
+      -- for lualine
       local group = vim.api.nvim_create_augroup("CCH", {})
       vim.api.nvim_create_autocmd({ "User" }, {
         pattern = "CodeCompanionChatAdapter",
