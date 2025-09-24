@@ -6,6 +6,14 @@ local storage_path = vim.fn.stdpath("data") .. "/myplugin.json"
 -- os.remove(storage_path)
 
 local opts_extensions = {
+  mcphub = {
+    callback = "mcphub.extensions.codecompanion",
+    opts = {
+      make_vars = true,
+      make_slash_commands = true,
+      show_result_in_chat = true
+    }
+  },
   history = {
     enabled = true,
     opts = {
@@ -267,6 +275,7 @@ return {
       "nvim-lua/plenary.nvim",
       "nvim-treesitter/nvim-treesitter",
       { 'MeanderingProgrammer/render-markdown.nvim', ft = { 'markdown', 'codecompanion' } },
+      "ravitemer/mcphub.nvim",
       "ravitemer/codecompanion-history.nvim",
     },
     config = function(_, opts)
