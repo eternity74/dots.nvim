@@ -9,7 +9,7 @@ vim.o.ic = true
 vim.o.makeprg = m
 
 vim.g.ai_plugin = "codecompanion"
--- vim.g.ai_plugin = "copilot-chat"
+-- vim.g.ai_plugin = "copilot"
 vim.g.ai_cmp = false
 
 vim.api.nvim_create_autocmd({ "BufRead" }, {

@@ -4,7 +4,6 @@ local mapping_key_prefix = vim.g.ai_prefix_key or "<leader>a"
 return {
   {
     "zbirenbaum/copilot.lua",
-    -- enabled = plugin_enabled,
     cmd = "Copilot",
     build = ":Copilot auth",
     event = "BufReadPost",
@@ -14,7 +13,8 @@ return {
         auto_trigger = true,
         hide_during_completion = vim.g.ai_cmp,
         keymap = {
-          accept = not vim.g.ai_cmp and "<TAB>" or false,
+          -- accept = not vim.g.ai_cmp and "<TAB>" or false,
+          accept = "<TAB>",
           next = "<M-]>",
           prev = "<M-[>",
         },

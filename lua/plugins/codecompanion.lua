@@ -139,7 +139,7 @@ local function get_copilot_adapter(model)
       billing = model.billing or "0",
       schema = {
         model = { default = model.id },
-      }
+      },
     })
 end
 
@@ -271,14 +271,12 @@ return {
     },
     config = function(_, opts)
       local config = require("codecompanion.config")
-      local adapters = require("codecompanion.adapters")
-      local copilot = adapters.resolve("copilot")
       local util = require("codecompanion.utils")
 
       local bootstrap_models = {
         { id = "gpt-5-mini", name = "GPT-5 mini (Preview)", billing = "0" },
       }
-      get_copilot_stats()
+      -- get_copilot_stats()
       models = get_copilot_models() or bootstrap_models
       local model_default = get_key("selected_model") or bootstrap_models[1]
       opts.adapters = {
@@ -366,7 +364,7 @@ return {
       }
       opts.display = {
         chat = {
-          intro_message = copilot_stats,
+          -- intro_message = copilot_stats,
           -- Change to true to show the current model
           -- show_settings = true,
           -- start_in_insert_mode = true,
