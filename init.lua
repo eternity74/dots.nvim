@@ -61,4 +61,6 @@ match ExtraWhitespace /\s\+$/
 set list listchars=tab:›∙,trail:∙,extends:$,nbsp:= 
 ]])
 
-vim.lsp.set_log_level("debug")
+-- disable lsp logging
+-- vim.lsp.set_log_level(vim.lsp.log_levels.OFF)
+-- vim.lsp.set_log_level(vim.lsp.log_levels.DEBUG)

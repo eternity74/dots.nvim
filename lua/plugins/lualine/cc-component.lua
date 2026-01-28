@@ -38,11 +38,18 @@ function M:init(options)
   })
 
   vim.api.nvim_create_autocmd({ "User" }, {
-    pattern = "CodeCompanionChatAdapter",
+    pattern = "CodeCompanionChatModel",
     group = group,
     callback = function(request)
-      self.name = request.data.adapter ~= nil and request.data.adapter.model.name or ""
-    end,
+      self.name = "N/A"
+      if request.data.adapter ~= nil then
+        if request.data.adapter.model ~= nil then
+          self.name = request.data.adapter.model.name
+        else
+          self.name = request.data.adapter.name
+        end
+      end
+    end
   })
 end
 

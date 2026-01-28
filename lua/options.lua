@@ -74,7 +74,7 @@ function find_chromium_root(fname)
         end
         dir = vim.fn.fnamemodify(dir, ":h")
     end
-    return nil
+    return vim.fn.getcwd()
 end
 
 function MyIncludeExpr(fname)
@@ -100,4 +100,8 @@ vim.api.nvim_create_autocmd('FileType', {
       vim.opt_local.spell = true
     end,
 })
---
+
+vim.keymap.set("v", "<C-c>", function()
+  local clipboard = require("clipboard_osc52")
+  clipboard.visual_copy()
+end, { noremap = true, silent = true })

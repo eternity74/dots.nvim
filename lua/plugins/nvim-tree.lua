@@ -10,7 +10,7 @@ local function my_on_attach(bufnr)
   -- default mappings
   api.config.mappings.default_on_attach(bufnr)
 
--- custom mappings
+  -- custom mappings
   vim.keymap.set('n', 'w', function()
     local view = require'nvim-tree.view'
     view.View.adaptive_size = not view.View.adaptive_size
@@ -28,13 +28,18 @@ local function my_on_attach(bufnr)
     finders_find_file.fn(filename)
   end, opts('Find File'))
 
-  vim.keymap.set('n', '<C-Space>', function()
+  local function change_nvim_tree_root()
     local finders_find_file = require "nvim-tree.actions.finders.find-file"
     local bufnr = vim.fn.bufnr('#', true)
     local filename = vim.api.nvim_buf_get_name(vim.fn.bufnr('#', true))
     require("nvim-tree").change_root(filename, bufnr)
     finders_find_file.fn(filename)
-  end, opts('Find File'))
+  end
+
+  -- window does not capture <C-Space>, so we map both
+  for _, lhs in ipairs( { "<C-Space>", "<leader><Space>" } ) do
+    vim.keymap.set('n', lhs, change_nvim_tree_root, opts('Change Nvim-Tree Root'))
+  end
 end
 
 local nvim_tree = {
