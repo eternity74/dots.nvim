@@ -40,7 +40,7 @@ return {
       },
       continue_last_chat = false,
       delete_on_clearing_chat = false,
-      dir_to_save = vim.fn.stdpath("data") .. "/codecompanion/history",
+      dir_to_save = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "history"),
       enable_logging = false,
       summary = {
         create_summary_keymap = "gcs",

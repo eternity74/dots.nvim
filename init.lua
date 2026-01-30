@@ -1,6 +1,11 @@
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
+if vim.fn.has("win32") == 1 then
+  vim.env.GIT_WORK_TREE = vim.fn.getcwd()
+  vim.env.GIT_DIR = vim.fn.getcwd() .. "\\.git"
+end
+
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 -- print(lazypath)
 if not vim.loop.fs_stat(lazypath) then
