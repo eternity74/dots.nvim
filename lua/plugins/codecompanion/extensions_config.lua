@@ -65,5 +65,12 @@ return {
         index_on_startup = false,
       },
     },
+  },
+  agentskills = {
+    opts = {
+      paths = {
+        { "~/skills", recursive = true },  -- Recursive search
+      }
+    }
   }
 }

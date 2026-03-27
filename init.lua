@@ -1,3 +1,8 @@
+local extra_config = vim.fn.expand("$HOME/nvim-init.lua")
+if vim.fn.filereadable(extra_config) == 1 then
+    vim.cmd("source " .. extra_config)
+end
+
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
