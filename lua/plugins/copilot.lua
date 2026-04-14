@@ -1,9 +1,16 @@
 local plugin_enabled = vim.g.ai_plugin == "copilot"
 local mapping_key_prefix = vim.g.ai_prefix_key or "<leader>a"
 
+local use_official = false
+
 return {
   {
+    "github/copilot.vim",
+     enabled = use_official
+  },
+  {
     "zbirenbaum/copilot.lua",
+    enabled = not use_official,
     cmd = "Copilot",
     build = ":Copilot auth",
     event = "BufReadPost",
