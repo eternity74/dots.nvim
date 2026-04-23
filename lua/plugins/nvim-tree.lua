@@ -70,9 +70,6 @@ local nvim_tree = {
       on_attach = my_on_attach,
       sort_by = "case_sensitive",
       hijack_cursor = true,
-      system_open = {
-        cmd = "xdg-open",
-      },
       view = {
         width = { min = MIN_WIDTH },
       },
