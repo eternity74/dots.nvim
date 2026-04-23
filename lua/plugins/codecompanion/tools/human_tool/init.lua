@@ -2,10 +2,7 @@ local config = require("codecompanion.config")
 local input_mod = require("plugins.codecompanion.tools.human_tool.input")
 local log = require("codecompanion.utils.log")
 local render_mod = require("plugins.codecompanion.tools.human_tool.render")
-local window_mod = require("plugins.codecompanion.tools.human_tool.window")
 local context_mod = require("plugins.codecompanion.tools.human_tool.context")
-
-local human_tool_augroup_id
 
 local M = {
   description = "Communicate with LLM in a Human, allowing the LLM to communicate to the user.",
@@ -77,62 +74,15 @@ local M = {
     ---@param self CodeCompanion.Tool.HumanTool
     ---@param meta { tools: CodeCompanion.Tools }
     setup = function(self, meta)
-      local chat = meta.tools and meta.tools.chat
-      if not chat or not chat.bufnr then
-        return
-      end
-
-      human_tool_augroup_id = vim.api.nvim_create_augroup("CodeCompanionHumanTool_" .. chat.bufnr, { clear = true })
-
-      vim.api.nvim_create_autocmd("BufWinLeave", {
-        group = human_tool_augroup_id,
-        buffer = chat.bufnr,
-        callback = function()
-          window_mod.close()
-        end,
-      })
-
-      vim.api.nvim_create_autocmd("BufWinEnter", {
-        group = human_tool_augroup_id,
-        buffer = chat.bufnr,
-        callback = function()
-          if not input_mod.get_pending_cb() then
-            return
-          end
-          if not window_mod.is_valid_buffer(input_mod.get_buf()) then
-            return
-          end
-          if window_mod.is_valid(window_mod.get()) then
-            vim.api.nvim_set_current_win(window_mod.get())
-            local line_count = vim.api.nvim_buf_line_count(input_mod.get_buf())
-            vim.api.nvim_win_set_cursor(window_mod.get(), { math.max(line_count, 1), 0 })
-            vim.cmd("startinsert")
-            return
-          end
-
-          local win_height = math.max(10, math.floor(vim.o.lines * 0.15))
-          local window_id = window_mod.open_under_chat(chat, win_height)
-          if not window_id then
-            return
-          end
-
-          vim.api.nvim_win_set_buf(window_mod.get(), input_mod.get_buf())
-          local line_count = vim.api.nvim_buf_line_count(input_mod.get_buf())
-          vim.api.nvim_set_current_win(window_id)
-          vim.api.nvim_win_set_cursor(window_mod.get(), { math.max(line_count, 1), 0 })
-          vim.cmd("startinsert")
-        end,
-      })
+      -- No separate window management needed; input is in the chat buffer
     end,
 
     ---@param self CodeCompanion.Tool.HumanTool
     ---@param meta { tools: CodeCompanion.Tools }
     on_exit = function(self, meta)
-      window_mod.close({ force = true })
-
-      if human_tool_augroup_id then
-        pcall(vim.api.nvim_del_augroup_by_id, human_tool_augroup_id)
-        human_tool_augroup_id = nil
+      -- Clean up pending state if needed
+      if input_mod.get_pending_cb() then
+        input_mod.set_pending_cb(nil)
       end
     end,
   },
@@ -174,7 +124,11 @@ local M = {
       end)
 
       log:debug("[wanchang] HumanTool success with self.function_call.call_id: %s", self.function_call.call_id)
-      return chat:add_tool_output(self, output_message)
+      log:debug("[wanchang] output_message: %s", output_message)
+      local user_role = config.interactions.chat.roles and config.interactions.chat.roles.user or "User"
+      local display_text = string.format("**💬 Human Tool(%s)**\n\n%s", user_role, output_message)
+      log:debug("[wanchang] display_text: %s", display_text)
+      return chat:add_tool_output(self, output_message, display_text)
     end,
 
     ---@param self CodeCompanion.Tool.HumanTool
@@ -187,3 +141,4 @@ local M = {
 }
 
 return M
+

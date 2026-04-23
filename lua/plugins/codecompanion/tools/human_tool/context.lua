@@ -34,10 +34,37 @@ function M.get_from_buffer(bufnr)
   return items
 end
 
+---Parse context items from a specific line range (no treesitter, plain text parsing)
+---@param bufnr integer
+---@param start_line integer 0-indexed
+---@param end_line integer 0-indexed (-1 for end of buffer)
+---@return string[]
+function M.get_from_lines(bufnr, start_line, end_line)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
+  local items = {}
+  for _, line in ipairs(lines) do
+    local stripped = line:match("^> %- (.+)$")
+    if stripped then
+      -- Remove icons
+      stripped = vim.iter(vim.tbl_values(icons)):fold(stripped, function(acc, icon)
+        return select(1, acc:gsub(icon, ""))
+      end)
+      table.insert(items, vim.trim(stripped))
+    end
+  end
+  return items
+end
+
 ---@param chat table
 ---@param bufnr integer
-function M.sync(chat, bufnr)
-  local context_in_chat = M.get_from_buffer(bufnr)
+---@param line_range? { start: integer, finish: integer } 0-indexed line range to parse (nil = whole buffer)
+function M.sync(chat, bufnr, line_range)
+  local context_in_chat
+  if line_range then
+    context_in_chat = M.get_from_lines(bufnr, line_range.start, line_range.finish)
+  else
+    context_in_chat = M.get_from_buffer(bufnr)
+  end
   if vim.tbl_isempty(context_in_chat) and vim.tbl_isempty(chat.context_items) then
     return
   end

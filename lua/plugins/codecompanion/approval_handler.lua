@@ -12,16 +12,25 @@ function M.setup()
         return
       end
 
-      if vim.api.nvim_get_current_buf() == bufnr then
-        local mode = vim.api.nvim_get_mode().mode
-        if mode:match("^i") then
-          local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
-          vim.api.nvim_feedkeys(esc, "n", true)
+      -- Focus the chat buffer window so user can interact with approval keymaps
+      for _, winid in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+        if vim.api.nvim_win_get_buf(winid) == bufnr then
+          vim.api.nvim_set_current_win(winid)
+          -- Scroll to the bottom where the approval prompt is
+          local line_count = vim.api.nvim_buf_line_count(bufnr)
+          vim.api.nvim_win_set_cursor(winid, { line_count, 0 })
+          break
         end
+      end
+
+      -- Exit insert mode if needed
+      local mode = vim.api.nvim_get_mode().mode
+      if mode:match("^i") then
+        local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
+        vim.api.nvim_feedkeys(esc, "n", true)
       end
     end,
   })
 end
 
 return M
-

@@ -47,10 +47,10 @@ function M.build_header_lines()
   if premium and premium.entitlement and premium.remaining then
     table.insert(
       header_lines,
-      string.format("## Premium Interactions: Used %d / %d", premium.entitlement - premium.remaining, premium.entitlement)
+      string.format("### Premium Interactions: Used %d / %d", premium.entitlement - premium.remaining, premium.entitlement)
     )
   else
-    table.insert(header_lines, "## Premium Interactions: unavailable")
+    table.insert(header_lines, "### Premium Interactions: unavailable")
   end
 
   table.insert(header_lines, "")

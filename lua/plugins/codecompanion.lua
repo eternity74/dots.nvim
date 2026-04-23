@@ -74,6 +74,14 @@ The user is working on a %s machine. Please respond with system specific command
     keymaps = {
       send = {
         modes = { n = "<C-s>", i = "<C-s>" },
+        callback = function(chat)
+          local ok, input_mod = pcall(require, "plugins.codecompanion.tools.human_tool.input")
+          if ok and input_mod.get_pending_cb() then
+            input_mod.submit()
+            return
+          end
+          chat:submit()
+        end,
         opts = {},
       },
     },
