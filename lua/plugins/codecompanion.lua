@@ -13,6 +13,9 @@ local prompt_library = require("plugins.codecompanion.prompt_library")
 
 -- Default model
 local DEFAULT_MODEL = "gpt-5.1-codex-mini"  -- 0.33x
+local DEFAULT_MODEL = "gpt-5.3-codex"       -- 1x
+local DEFAULT_MODEL = "claude-sonnet-4"    -- 1x
+local DEFAULT_MODEL = "claude-haiku-4.5"    -- 0.33x
 local DEFAULT_MODEL = "gpt-4.1"             -- 0x
 local DEFAULT_MODEL = "gpt-5-mini"          -- 0x
 
@@ -31,12 +34,54 @@ local default_tools_opts = {
   default_tools = DEFAULT_TOOLS,
   system_prompt = { enabled = true, replace_main_system_prompt = false },
 }
-local read_file_tool_opts = {
+local allowed_tool_opts = {
   opts = {
     require_approval_before = false,
     require_cmd_approval = false,
   },
 }
+
+
+-- Workaround for stale tool-group state:
+-- When a group is removed via context reconciliation, group metadata can remain
+-- while all member tools are already detached from `in_use`.
+-- In that case, re-adding the same group is blocked by `add_group`'s early return.
+local function apply_tool_registry_group_readd_patch()
+  local ok, ToolRegistry = pcall(require, "codecompanion.interactions.chat.tool_registry")
+  if not ok or ToolRegistry._patched_add_group_readd then
+    return
+  end
+
+  local original_add_group = ToolRegistry.add_group
+  if type(original_add_group) ~= "function" then
+    return
+  end
+
+  ToolRegistry.add_group = function(self, group, add_opts)
+    -- If the group entry exists but none of its tools are active anymore,
+    -- treat it as stale and clear it so the group can be added again.
+    local group_tools = self.groups and self.groups[group]
+    if type(group_tools) == "table" then
+      local has_active_tool = false
+      for _, tool_name in ipairs(group_tools) do
+        if self.in_use and self.in_use[tool_name] then
+          has_active_tool = true
+          break
+        end
+      end
+
+      if not has_active_tool then
+        self.groups[group] = nil
+      end
+    end
+
+    return original_add_group(self, group, add_opts)
+  end
+
+  -- Guard to ensure this monkey patch is applied only once per session.
+  ToolRegistry._patched_add_group_readd = true
+end
+
 
 local function make_chat_interaction()
   return {
@@ -45,7 +90,8 @@ local function make_chat_interaction()
       -- add human_tool with a named command inside cmds
       human_tool = require("plugins.codecompanion.tools.human_tool"),
       opts = default_tools_opts,
-      read_file = read_file_tool_opts,
+      read_file = allowed_tool_opts,
+      grep_search = allowed_tool_opts,
     },
     roles = {
       user = "wanchnag.ryu",
@@ -89,9 +135,6 @@ The user is working on a %s machine. Please respond with system specific command
 end
 
 local cc_config = function(_, opts)
-  local config = require("codecompanion.config")
-  local util = require("codecompanion.utils")
-
   opts = opts or {}
 
   local defaults = {
@@ -177,6 +220,8 @@ local cc_config = function(_, opts)
   opts = vim.tbl_deep_extend("force", defaults, opts)
 
   require('codecompanion').setup(opts)
+  -- Apply the group re-add workaround after CodeCompanion initializes internals.
+  apply_tool_registry_group_readd_patch()
   require('plugins.codecompanion.utils.extmarks').setup()
   require('plugins.codecompanion.approval_handler').setup()
   require('plugins.codecompanion.tools.human_tool.history_preprocess').setup()

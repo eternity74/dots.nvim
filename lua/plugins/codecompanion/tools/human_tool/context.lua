@@ -121,21 +121,17 @@ function M.sync(chat, bufnr, line_range)
     end)
     :totable()
 
-  local schemas_to_keep = {}
-  local tools_in_use_to_keep = {}
-  for id, tool_schema in pairs(chat.tool_registry.schemas) do
-    if not remove_set[id] then
-      schemas_to_keep[id] = tool_schema
-      local tool_name = id:match("<tool>(.*)</tool>")
-      if tool_name and chat.tool_registry.in_use[tool_name] then
-        tools_in_use_to_keep[tool_name] = true
-      end
-    else
-      log:debug("Removing tool schema and usage flag for ID: %s", id)
+  for id in pairs(remove_set) do
+    if chat.tool_registry.schemas[id] then
+      log:debug("Removing tool schema for ID: %s", id)
+      chat.tool_registry.schemas[id] = nil
+    end
+    local tool_name = id:match("<tool>(.*)</tool>")
+    if tool_name and chat.tool_registry.in_use[tool_name] then
+      log:debug("Removing tool usage flag for: %s", tool_name)
+      chat.tool_registry.in_use[tool_name] = nil
     end
   end
-  chat.tool_registry.schemas = schemas_to_keep
-  chat.tool_registry.in_use = tools_in_use_to_keep
 end
 
 ---@param chat table
