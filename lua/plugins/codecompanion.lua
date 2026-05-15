@@ -10,6 +10,7 @@ local fmt = string.format
 
 local opts_extensions = require("plugins.codecompanion.extensions_config")
 local prompt_library = require("plugins.codecompanion.prompt_library")
+local approval_helper = require("plugins.codecompanion.approval_helper")
 
 -- Default model
 local DEFAULT_MODEL = "gpt-5.1-codex-mini"  -- 0.33x
@@ -92,6 +93,12 @@ local function make_chat_interaction()
       opts = default_tools_opts,
       read_file = allowed_tool_opts,
       grep_search = allowed_tool_opts,
+      ["run_command"] = {
+        opts = {
+          require_approval_before = approval_helper.require_approval_before_run_command,
+          require_cmd_approval = true,
+        },
+      },
     },
     roles = {
       user = "wanchnag.ryu",
