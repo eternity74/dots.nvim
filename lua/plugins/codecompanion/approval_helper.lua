@@ -57,25 +57,83 @@ local function parse_bash_commands(cmd_str)
   return commands
 end
 
---- Split a command string into whitespace-separated tokens.
+--- Split command string into tokens while preserving quoted substrings.
+--- Supports both POSIX/Windows style quoted paths with spaces.
 --- @param cmd_str string
 --- @return string[]
 local function tokenize(cmd_str)
   local tokens = {}
-  for token in cmd_str:gmatch("%S+") do
-    table.insert(tokens, token)
+  local current = ""
+  local quote = nil
+  local i = 1
+  local len = #cmd_str
+
+  while i <= len do
+    local c = cmd_str:sub(i, i)
+
+    if quote then
+      if c == "\\" and i < len then
+        local next_char = cmd_str:sub(i + 1, i + 1)
+        if next_char == quote or next_char == "\\" then
+          current = current .. next_char
+          i = i + 2
+        else
+          current = current .. c
+          i = i + 1
+        end
+      elseif c == quote then
+        quote = nil
+        i = i + 1
+      else
+        current = current .. c
+        i = i + 1
+      end
+    else
+      if c == '"' or c == "'" then
+        quote = c
+        i = i + 1
+      elseif c:match("%s") then
+        if current ~= "" then
+          table.insert(tokens, current)
+          current = ""
+        end
+        i = i + 1
+      else
+        current = current .. c
+        i = i + 1
+      end
+    end
   end
+
+  if current ~= "" then
+    table.insert(tokens, current)
+  end
+
   return tokens
+end
+
+--- Normalize executable token across POSIX/Windows shells.
+--- @param token string
+--- @return string
+local function normalize_executable(token)
+  local exe = token:match("([^/\\]+)$") or token
+  exe = exe:lower()
+  exe = exe:gsub("%.exe$", "")
+  exe = exe:gsub("%.cmd$", "")
+  exe = exe:gsub("%.bat$", "")
+  return exe
 end
 
 --- Extract the executable name.
 --- Example: "FOO=bar /usr/bin/git diff" -> "git"
+--- Example: "C:\\Program Files\\Git\\bin\\git.exe status" -> "git"
 --- @param cmd_str string
 --- @return string|nil
 local function get_executable(cmd_str)
-  for token in cmd_str:gmatch("%S+") do
+  local tokens = tokenize(cmd_str)
+  for _, token in ipairs(tokens) do
     if not token:match("^%w+=") then
-      return token:match("([^/]+)$")
+      return normalize_executable(token)
     end
   end
   return nil
@@ -113,6 +171,16 @@ local allowed_commands = to_set({
   "stat",
   "file",
   "realpath",
+  -- Windows read-only equivalents
+  "dir",
+  "type",
+  "where",
+  "more",
+  "fc",
+  "tree",
+  "whoami",
+  "hostname",
+  "ver",
 })
 
 -- Subcommand-level allowlist for tools that mix read/write operations.
@@ -161,6 +229,65 @@ local function is_allowed_git_read_command(cmd_str)
   return subcmd ~= nil and allowed_git_subcommands[subcmd] == true
 end
 
+local function normalize_path_for_compare(path)
+  local normalized = path:gsub("\\", "/")
+
+  if vim.loop.os_uname().sysname == "Windows_NT" then
+    normalized = normalized:lower()
+  end
+
+  if normalized ~= "/" then
+    normalized = normalized:gsub("/+$", "")
+  end
+  return normalized
+end
+
+--- Allow `cd` only when target stays inside current working directory.
+--- @param cmd_str string
+--- @return boolean
+local function is_allowed_cd_command(cmd_str)
+  local tokens = tokenize(cmd_str)
+
+  local i = 2
+  while i <= #tokens do
+    local t = tokens[i]
+    if t == "-L" or t == "-P" or t == "/d" or t == "/D" then
+      i = i + 1
+    elseif t == "--" then
+      i = i + 1
+      break
+    else
+      break
+    end
+  end
+
+  local target = tokens[i]
+  if not target or target == "" then
+    return false
+  end
+
+  local cwd = vim.loop.cwd()
+  if not cwd then
+    return false
+  end
+
+  local cwd_real = vim.loop.fs_realpath(cwd)
+  if not cwd_real then
+    return false
+  end
+
+  local absolute_target = vim.fn.fnamemodify(target, ":p")
+  local target_real = vim.loop.fs_realpath(absolute_target)
+  if not target_real then
+    return false
+  end
+
+  local base = normalize_path_for_compare(cwd_real)
+  local candidate = normalize_path_for_compare(target_real)
+
+  return candidate == base or candidate:sub(1, #base + 1) == (base .. "/")
+end
+
 --- Check if a single shell command is allowlisted.
 --- @param cmd_str string
 --- @return boolean
@@ -172,6 +299,10 @@ local function is_allowlisted_command(cmd_str)
 
   if exe == "git" then
     return is_allowed_git_read_command(cmd_str)
+  end
+
+  if exe == "cd" then
+    return is_allowed_cd_command(cmd_str)
   end
 
   return allowed_commands[exe] == true
