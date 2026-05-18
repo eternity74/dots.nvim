@@ -38,19 +38,61 @@ local function get_copilot_stats()
   return json
 end
 
+---@param chat table|nil
 ---@return string[]
-function M.build_header_lines()
+function M.build_header_lines(chat)
   local header_lines = {}
   local stats = get_copilot_stats()
   local premium = stats and stats.quota_snapshots and stats.quota_snapshots.premium_interactions or nil
 
+  local model_name = nil
+  local adapter_name = nil
+  if chat and chat.adapter then
+    if chat.adapter.schema and chat.adapter.schema.model then
+      model_name = chat.adapter.schema.model.default
+    end
+    adapter_name = chat.adapter.formatted_name or chat.adapter.name
+  end
+
+  local llm_label = nil
+  if adapter_name and model_name then
+    llm_label = string.format("%s / %s", adapter_name, model_name)
+  elseif model_name then
+    llm_label = model_name
+  elseif adapter_name then
+    llm_label = adapter_name
+  end
+
+  local function build_usage_bar(used, total, width)
+    width = width or 10
+    if not total or total <= 0 then
+      return string.rep("░", width)
+    end
+
+    local ratio = used / total
+    local filled = math.floor((ratio * width) + 0.5)
+    filled = math.max(0, math.min(width, filled))
+
+    return string.rep("█", filled) .. string.rep("░", width - filled)
+  end
+
   if premium and premium.entitlement and premium.remaining then
+    local total = premium.entitlement
+    local remaining = premium.remaining
+    local used = total - remaining
+    local percent = total > 0 and ((used / total) * 100) or 0
+    local bar = build_usage_bar(used, total, 10)
+
     table.insert(
       header_lines,
-      string.format("### Premium Interactions: Used %d / %d", premium.entitlement - premium.remaining, premium.entitlement)
+      string.format("### 💎 Premium [%s] %d/%d used · %d left (%.1f%%)", bar, used, total, remaining, percent)
     )
   else
-    table.insert(header_lines, "### Premium Interactions: unavailable")
+    table.insert(header_lines, "### 💎 Premium: unavailable")
+  end
+
+  if llm_label then
+    table.insert(header_lines, string.format("### 🤖 LLM: %s", llm_label:gsub(" / ", " · ")))
   end
 
   table.insert(header_lines, "")

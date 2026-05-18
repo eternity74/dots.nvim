@@ -80,7 +80,7 @@ for _, cmd in ipairs(allowed_commands) do
   allowed_set[cmd] = true
 end
 
-function M.equire_approval_before_run_command(tool, tools)
+function M.require_approval_before_run_command(tool, tools)
   local commands = parse_bash_commands(tool.args.cmd)
 
   local all_allowed = true

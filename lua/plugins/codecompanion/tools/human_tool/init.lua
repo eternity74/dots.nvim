@@ -4,6 +4,40 @@ local log = require("codecompanion.utils.log")
 local render_mod = require("plugins.codecompanion.tools.human_tool.render")
 local context_mod = require("plugins.codecompanion.tools.human_tool.context")
 
+local function normalize_model_name(model)
+  if type(model) ~= "string" then
+    return ""
+  end
+
+  local normalized = model:lower()
+  normalized = normalized:gsub("%s+", "-")
+  normalized = normalized:gsub("_", "-")
+  return normalized
+end
+
+local function maybe_auto_switch_model(chat)
+  if not chat or not chat.adapter or not chat.adapter.schema or not chat.adapter.schema.model then
+    return
+  end
+
+  local current_model = chat.adapter.schema.model.default
+  local normalized = normalize_model_name(current_model)
+  local target_model
+
+  if normalized == "kaiku-4.5" or normalized == "claude-haiku-4.5" or normalized == "claude-haiku-4-5" then
+    target_model = "claude-opus-4.6"
+  elseif normalized == "gpt-5-mini" then
+    target_model = "gpt-5.3-codex"
+  end
+
+  if not target_model or target_model == current_model then
+    return
+  end
+
+  log:info("[human_tool] Auto-switch model: %s -> %s", tostring(current_model), target_model)
+  chat:change_model({ model = target_model })
+end
+
 local M = {
   description = "Communicate with LLM in a Human, allowing the LLM to communicate to the user.",
   name = "human_tool",
@@ -16,6 +50,8 @@ local M = {
       log:debug("HumanTool called with opts: %s", vim.inspect(opts))
       local llm_response = tostring(args.input or "")
       local output_cb = opts.output_cb
+
+      maybe_auto_switch_model(self.chat)
 
       vim.schedule(function()
         if self.chat then
@@ -93,14 +129,24 @@ local M = {
     success = function(self, stdout, meta)
       local chat = meta.tools.chat
       local user_input = vim.iter(stdout):flatten():join("\n")
+
       local replaced_input = render_mod.render_user_input(chat, user_input)
 
       local lines = vim.split(replaced_input, "\n", { plain = true })
       local out_lines = {}
+      local premium_lines = {}
       local header_trim = vim.trim(context_mod.header)
       local i = 1
       while i <= #lines do
-        if vim.trim(lines[i]) == header_trim then
+        local trimmed = vim.trim(lines[i])
+        local is_premium_line = vim.startswith(trimmed, "### Premium Interactions")
+          or vim.startswith(trimmed, "### 💎 Premium")
+          or vim.startswith(trimmed, "### 🤖 LLM")
+
+        if is_premium_line then
+          table.insert(premium_lines, lines[i])
+          i = i + 1
+        elseif trimmed == header_trim then
           -- skip the header line and all subsequent lines that start with "> "
           i = i + 1
           while i <= #lines and (lines[i]:sub(1, 2) == "> ") do
@@ -112,21 +158,33 @@ local M = {
         end
       end
 
+      -- Keep premium/LLM status lines for chat rendering only.
+      -- Only actual user input should be returned to the LLM.
       local output_message = table.concat(out_lines, "\n")
+      local premium_info = table.concat(premium_lines, "\n")
+      local buffer_message = output_message
+      if premium_info ~= "" then
+        if buffer_message ~= "" then
+          buffer_message = premium_info .. "\n" .. buffer_message
+        else
+          buffer_message = premium_info
+        end
+      end
 
       vim.schedule(function()
         if meta.tools.chat then
           meta.tools.chat:add_buf_message({
             role = config.constants.USER_ROLE,
-            content = output_message,
+            content = buffer_message,
           })
         end
       end)
 
       log:debug("[wanchang] HumanTool success with self.function_call.call_id: %s", self.function_call.call_id)
-      log:debug("[wanchang] output_message: %s", output_message)
+      log:debug("[wanchang] output_message (to llm): %s", output_message)
+      log:debug("[wanchang] buffer_message (chat only): %s", buffer_message)
       local user_role = config.interactions.chat.roles and config.interactions.chat.roles.user or "User"
-      local display_text = string.format("**💬 Human Tool(%s)**\n\n%s", user_role, output_message)
+      local display_text = string.format("**💬 Human Tool(%s)**\n\n%s", user_role, buffer_message)
       log:debug("[wanchang] display_text: %s", display_text)
       return chat:add_tool_output(self, output_message, display_text)
     end,

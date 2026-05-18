@@ -26,7 +26,7 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 })
 
 local HEADER_TITLE = "## 💬 Human Tool Input"
-local PREMIUM_PREFIX = "### Premium Interactions:"
+local pending_output_cb
 local active_chat -- the chat object when human_tool is active
 local header_start_line -- 0-indexed line where our section starts in the chat buffer
 local header_line_count -- number of header + context lines inserted
@@ -68,16 +68,21 @@ end
 ---@return nil
 function M.submit()
   if not pending_output_cb then
-    return
+    return false
   end
   if not active_chat or not active_chat.bufnr or not vim.api.nvim_buf_is_valid(active_chat.bufnr) then
-    return
+    log:warn("[human_tool] stale pending callback detected; clearing state")
+    pending_output_cb = nil
+    active_chat = nil
+    header_start_line = nil
+    header_line_count = nil
+    return false
   end
 
   local chat = active_chat
   local bufnr = chat.bufnr
 
-  -- Parse lines: separate header/context/premium from user input
+  -- Parse lines: separate header/context from user input, BUT keep premium info
   local all_lines = vim.api.nvim_buf_get_lines(bufnr, header_start_line, -1, false)
   local header_trim = vim.trim(context_mod.header)
   local user_lines = {}
@@ -89,7 +94,6 @@ function M.submit()
       or trimmed == ""
       or trimmed == header_trim
       or line:sub(1, 2) == "> "
-      or trimmed:sub(1, #PREMIUM_PREFIX) == PREMIUM_PREFIX
     then
       context_end = i
     else
@@ -128,6 +132,8 @@ function M.submit()
   vim.schedule(function()
     cb({ status = "success", data = user_input })
   end)
+
+  return true
 end
 
 ---Open the input section in the chat buffer (no separate window)
@@ -146,7 +152,7 @@ function M.open(chat, _prompt, output_cb)
   -- Build header and context lines (these are the "header" we skip on submit)
   local header_lines = { "", "## 💬 Human Tool Input", "" }
   local context_lines = context_mod.render(chat)
-  local premium_lines = render_mod.build_header_lines()
+  local premium_lines = render_mod.build_header_lines(chat)
 
   local all_insert_lines = {}
   vim.list_extend(all_insert_lines, header_lines)

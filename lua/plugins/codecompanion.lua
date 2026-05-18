@@ -130,8 +130,10 @@ The user is working on a %s machine. Please respond with system specific command
         callback = function(chat)
           local ok, input_mod = pcall(require, "plugins.codecompanion.tools.human_tool.input")
           if ok and input_mod.get_pending_cb() then
-            input_mod.submit()
-            return
+            local handled = input_mod.submit()
+            if handled then
+              return
+            end
           end
           chat:submit()
         end,
@@ -278,6 +280,22 @@ return {
         noremap = true,
         silent = true,
         desc = "CodeCompanion add to chat",
+      },
+      {
+        "<leader>sz",
+        "<cmd>CodeCompanion /human-tool-claude<cr>",
+        mode = { "n", "v" },
+        noremap = true,
+        silent = true,
+        desc = "CodeCompanion agentic-human-tool prompt with claude",
+      },
+      {
+        "<leader>sd",
+        "<cmd>CodeCompanion /human-tool-gpt<cr>",
+        mode = { "n", "v" },
+        noremap = true,
+        silent = true,
+        desc = "CodeCompanion agentic-human-tool prompt with gpt",
       }
     },
   },

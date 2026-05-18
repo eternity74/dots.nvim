@@ -1,10 +1,63 @@
-
 return {
+  ["human tool with claude"] = {
+    interaction = "chat",
+    description = "Use a workflow with human tool",
+    opts = {
+      alias = "human-tool-claude",
+      adapter = {
+        name = "copilot",
+        model = "claude-haiku-4.5",
+      },
+      is_workflow = true,
+    },
+    tools = {
+      "agent",
+    },
+    prompts = {
+      {
+        {
+          name = "Human Tool Usage",
+          role = "user",
+          content = "Hi agent!",
+          opts = {
+            auto_submit = true,
+          },
+        },
+      },
+    },
+  },
+  ["human tool with gpt"] = {
+    interaction = "chat",
+    description = "Use a workflow with human tool",
+    opts = {
+      alias = "human-tool-gpt",
+      adapter = {
+        name = "copilot",
+        model = "gpt-5-mini",
+      },
+      is_workflow = true,
+    },
+    tools = {
+      "agent",
+    },
+    prompts = {
+      {
+        {
+          name = "Human Tool Usage",
+          role = "user",
+          content = "Hi agent!",
+          opts = {
+            auto_submit = true,
+          },
+        },
+      },
+    },
+  },
   ["Edit<->Build workflow"] = {
     strategy = "workflow",
     description = "Use a workflow to repeatedly edit then build code",
     opts = {
-      index = 5,
+      index = 6,
       is_default = true,
       short_name = "eb",
     },
