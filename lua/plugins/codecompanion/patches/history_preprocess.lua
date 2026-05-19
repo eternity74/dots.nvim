@@ -36,6 +36,52 @@ local function is_pending_call(call, responded_call_ids)
 end
 
 
+--- Check if the adapter expects 'fc_' prefixed tool_call IDs (GPT models).
+---@param adapter_name string|nil
+---@return boolean
+local function expects_fc_prefix(adapter_name)
+  if not adapter_name then
+    return false
+  end
+  -- OpenAI GPT models use 'fc_' prefix
+  local gpt_adapters = { "openai", "copilot" }
+  for _, name in ipairs(gpt_adapters) do
+    if adapter_name == name then
+      return true
+    end
+  end
+  return false
+end
+
+--- Normalize tool_call ID prefix for GPT models that expect 'fc_' instead of 'call_'.
+---@param messages table[] Array of chat messages
+---@param to_fc boolean If true, convert call_ → fc_; if false, do nothing
+local function fix_tool_call_id_prefix(messages, to_fc)
+  if not to_fc then
+    return
+  end
+
+  local id_map = {}
+
+  for _, msg in ipairs(messages) do
+    if msg.tools and msg.tools.calls then
+      for _, call in ipairs(msg.tools.calls) do
+        if call.id and call.id:sub(1, 5) == "call_" then
+          local new_id = "fc_" .. call.id:sub(6)
+          id_map[call.id] = new_id
+          call.id = new_id
+        end
+      end
+    end
+  end
+
+  for _, msg in ipairs(messages) do
+    if msg.tools and msg.tools.call_id and id_map[msg.tools.call_id] then
+      msg.tools.call_id = id_map[msg.tools.call_id]
+    end
+  end
+end
+
 --- Shorten tool_call IDs that exceed the OpenAI API limit (64 chars).
 ---@param messages table[] Array of chat messages
 local function fix_long_tool_call_ids(messages)
@@ -95,12 +141,15 @@ end
 
 --- Transform messages for history restore.
 ---@param messages table[] Array of chat messages
+---@param opts? {adapter_name?: string} Options
 ---@return table[] Transformed messages
-function M.preprocess_messages(messages)
+function M.preprocess_messages(messages, opts)
   if not messages or #messages == 0 then
     return messages
   end
 
+  opts = opts or {}
+  fix_tool_call_id_prefix(messages, expects_fc_prefix(opts.adapter_name))
   fix_long_tool_call_ids(messages)
 
   local human_tool_call_ids, responded_call_ids = build_call_id_sets(messages)
@@ -233,18 +282,25 @@ function M.setup()
       local original_create_chat = history_ui.create_chat
       history_ui.create_chat = function(self, chat_data)
         if chat_data and chat_data.messages then
-          chat_data.messages = M.preprocess_messages(chat_data.messages)
+          local adapter_name = chat_data.adapter and chat_data.adapter.name or nil
+          chat_data.messages = M.preprocess_messages(chat_data.messages, { adapter_name = adapter_name })
         end
 
         local chat = original_create_chat(self, chat_data)
 
         -- Restore adapter model name from settings so lualine/events reflect the saved model
         if chat and chat.settings and chat.settings.model and chat.adapter then
+          local restored_model = tostring(chat.settings.model)
+          if restored_model:lower():match("^gpt") then
+            restored_model = "gpt-5-mini"
+            chat.settings.model = restored_model
+          end
+
           if chat.adapter.schema and chat.adapter.schema.model then
-            chat.adapter.schema.model.default = chat.settings.model
+            chat.adapter.schema.model.default = restored_model
           end
           if type(chat.adapter.model) == "table" then
-            chat.adapter.model.name = chat.settings.model
+            chat.adapter.model.name = restored_model
           end
 
           -- Remove settings keys that are disabled for the restored model
