@@ -71,7 +71,6 @@ function M.submit()
     return false
   end
   if not active_chat or not active_chat.bufnr or not vim.api.nvim_buf_is_valid(active_chat.bufnr) then
-    log:warn("[human_tool] stale pending callback detected; clearing state")
     pending_output_cb = nil
     active_chat = nil
     header_start_line = nil

@@ -210,18 +210,9 @@ function M.preprocess_messages(messages, opts)
           })
         end
 
-        if is_pending_call(human_tool_call, responded_call_ids) then
-          local pending_msg = "(복원됨) Human Tool 입력 대기 상태입니다. 이어서 답변을 입력해 주세요."
-          if turn_type and turn_type ~= "" then
-            pending_msg = string.format("%s [turn_type=%s]", pending_msg, turn_type)
-          end
-          table.insert(result, {
-            role = "user",
-            content = pending_msg,
-            opts = { visible = true, tag = "human_tool_pending" },
-          })
-        end
+        -- pending human_tool 상태 안내 문구는 복원 UI에 표시하지 않음
         -- If already visible or no content, just drop the tool_call message
+        -- (pending call도 동일하게 별도 메시지 없이 생략)
       else
         -- Non-human_tool: keep as-is
         table.insert(result, msg)
