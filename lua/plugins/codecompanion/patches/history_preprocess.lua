@@ -282,8 +282,12 @@ function M.setup()
         -- Restore adapter model name from settings so lualine/events reflect the saved model
         if chat and chat.settings and chat.settings.model and chat.adapter then
           local restored_model = tostring(chat.settings.model)
-          if restored_model:lower():match("^gpt") then
+          local normalized_model = restored_model:lower()
+          if normalized_model:match("^gpt") then
             restored_model = "gpt-5-mini"
+            chat.settings.model = restored_model
+          elseif normalized_model:match("^claude") then
+            restored_model = "claude-haiku-4.5"
             chat.settings.model = restored_model
           end
 
