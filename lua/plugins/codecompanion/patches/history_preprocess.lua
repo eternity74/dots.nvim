@@ -15,7 +15,27 @@
 --- - Does NOT modify saved JSON files
 --- - Only affects rendering when restoring from history
 
+local log = require("codecompanion.utils.log")
+
 local M = {}
+local did_setup = false
+
+---@param call table
+---@param responded_call_ids table<string, boolean>
+---@return boolean
+local function is_pending_call(call, responded_call_ids)
+  if not call then
+    return false
+  end
+  if call.id and responded_call_ids[call.id] then
+    return false
+  end
+  if call.call_id and responded_call_ids[call.call_id] then
+    return false
+  end
+  return true
+end
+
 
 --- Shorten tool_call IDs that exceed the OpenAI API limit (64 chars).
 ---@param messages table[] Array of chat messages
@@ -73,6 +93,33 @@ local function build_call_id_sets(messages)
   return human_tool_call_ids, responded_call_ids
 end
 
+--- Collect pending human_tool calls from saved messages for replay on restore.
+---@param messages table[]
+---@return table[]
+function M.collect_pending_human_tool_calls(messages)
+  if not messages or #messages == 0 then
+    return {}
+  end
+
+  local copied = vim.deepcopy(messages)
+  fix_long_tool_call_ids(copied)
+
+  local _, responded_call_ids = build_call_id_sets(copied)
+  local pending_calls = {}
+
+  for _, msg in ipairs(copied) do
+    if msg.role == "llm" and msg.tools and msg.tools.calls then
+      for _, call in ipairs(msg.tools.calls) do
+        if call["function"] and call["function"].name == "human_tool" and is_pending_call(call, responded_call_ids) then
+          table.insert(pending_calls, call)
+        end
+      end
+    end
+  end
+
+  return pending_calls
+end
+
 --- Transform messages for history restore.
 ---@param messages table[] Array of chat messages
 ---@return table[] Transformed messages
@@ -92,13 +139,21 @@ function M.preprocess_messages(messages)
     if msg.role == "llm" and msg.tools and msg.tools.calls then
       local has_human_tool = false
       local human_tool_input = nil
+      local human_tool_call = nil
+      local turn_type = nil
 
       for _, call in ipairs(msg.tools.calls) do
         if call["function"] and call["function"].name == "human_tool" then
           has_human_tool = true
+          human_tool_call = call
           local ok, args = pcall(vim.json.decode, call["function"].arguments or "{}")
-          if ok and args and args.input and args.input ~= "" then
-            human_tool_input = args.input
+          if ok and args then
+            if args.input and args.input ~= "" then
+              human_tool_input = args.input
+            end
+            if args.turn_type and args.turn_type ~= "" then
+              turn_type = tostring(args.turn_type)
+            end
           end
           break
         end
@@ -130,6 +185,18 @@ function M.preprocess_messages(messages)
             content = content,
             opts = { visible = true },
             _meta = msg._meta,
+          })
+        end
+
+        if is_pending_call(human_tool_call, responded_call_ids) then
+          local pending_msg = "(복원됨) Human Tool 입력 대기 상태입니다. 이어서 답변을 입력해 주세요."
+          if turn_type and turn_type ~= "" then
+            pending_msg = string.format("%s [turn_type=%s]", pending_msg, turn_type)
+          end
+          table.insert(result, {
+            role = "user",
+            content = pending_msg,
+            opts = { visible = true, tag = "human_tool_pending" },
           })
         end
         -- If already visible or no content, just drop the tool_call message
@@ -181,16 +248,67 @@ end
 --- Monkey-patch the history extension's UI:create_chat to preprocess messages
 --- and TitleGenerator:generate to filter out _meta.tag messages
 function M.setup()
+  if did_setup then
+    return
+  end
+  did_setup = true
+
   vim.defer_fn(function()
     -- Patch 1: UI:create_chat - preprocess messages for restore
     local ui_ok, history_ui = pcall(require, "codecompanion._extensions.history.ui")
     if ui_ok and history_ui.create_chat then
       local original_create_chat = history_ui.create_chat
       history_ui.create_chat = function(self, chat_data)
+        local pending_human_tool_calls = {}
+
         if chat_data and chat_data.messages then
+          pending_human_tool_calls = M.collect_pending_human_tool_calls(chat_data.messages)
           chat_data.messages = M.preprocess_messages(chat_data.messages)
         end
-        return original_create_chat(self, chat_data)
+
+        local chat = original_create_chat(self, chat_data)
+
+        -- Restore adapter model name from settings so lualine/events reflect the saved model
+        if chat and chat.settings and chat.settings.model and chat.adapter then
+          if chat.adapter.schema and chat.adapter.schema.model then
+            chat.adapter.schema.model.default = chat.settings.model
+          end
+          if type(chat.adapter.model) == "table" then
+            chat.adapter.model.name = chat.settings.model
+          end
+
+          -- Remove settings keys that are disabled for the restored model
+          -- (e.g., temperature is not supported by codex/gpt-5 models)
+          if chat.adapter.schema then
+            for k, v in pairs(chat.adapter.schema) do
+              if type(v) == "table" and type(v.enabled) == "function" and not v.enabled(chat.adapter) then
+                chat.settings[k] = nil
+              end
+            end
+          end
+
+          -- Re-fire ChatModel event so lualine picks up the correct model
+          local utils = require("codecompanion.utils")
+          local adapters = require("codecompanion.adapters")
+          utils.fire("ChatModel", {
+            adapter = adapters.make_safe(chat.adapter),
+            bufnr = chat.bufnr,
+            id = chat.id,
+            model = chat.settings.model,
+          })
+        end
+
+        if chat and pending_human_tool_calls and #pending_human_tool_calls > 0 then
+          vim.schedule(function()
+            if not (chat.tools and chat.tools.execute) then
+              return
+            end
+            log:info("[human_tool] Replaying %d pending human_tool call(s) from history restore", #pending_human_tool_calls)
+            chat.tools:execute(chat, pending_human_tool_calls)
+          end)
+        end
+
+        return chat
       end
     end
 

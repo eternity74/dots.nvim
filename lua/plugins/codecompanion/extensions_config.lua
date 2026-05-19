@@ -4,7 +4,7 @@ return {
     opts = {
       keymap = "gh",
       save_chat_keymap = "sc",
-      auto_sve = true,
+      auto_save = true,
       expiration_days = 7,
       picker = "telescope",
       chat_filter = nil,

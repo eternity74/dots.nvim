@@ -43,47 +43,6 @@ local allowed_tool_opts = {
 }
 
 
--- Workaround for stale tool-group state:
--- When a group is removed via context reconciliation, group metadata can remain
--- while all member tools are already detached from `in_use`.
--- In that case, re-adding the same group is blocked by `add_group`'s early return.
-local function apply_tool_registry_group_readd_patch()
-  local ok, ToolRegistry = pcall(require, "codecompanion.interactions.chat.tool_registry")
-  if not ok or ToolRegistry._patched_add_group_readd then
-    return
-  end
-
-  local original_add_group = ToolRegistry.add_group
-  if type(original_add_group) ~= "function" then
-    return
-  end
-
-  ToolRegistry.add_group = function(self, group, add_opts)
-    -- If the group entry exists but none of its tools are active anymore,
-    -- treat it as stale and clear it so the group can be added again.
-    local group_tools = self.groups and self.groups[group]
-    if type(group_tools) == "table" then
-      local has_active_tool = false
-      for _, tool_name in ipairs(group_tools) do
-        if self.in_use and self.in_use[tool_name] then
-          has_active_tool = true
-          break
-        end
-      end
-
-      if not has_active_tool then
-        self.groups[group] = nil
-      end
-    end
-
-    return original_add_group(self, group, add_opts)
-  end
-
-  -- Guard to ensure this monkey patch is applied only once per session.
-  ToolRegistry._patched_add_group_readd = true
-end
-
-
 local function make_chat_interaction()
   return {
     adapter = make_default_adapter(),
@@ -229,11 +188,16 @@ local cc_config = function(_, opts)
   opts = vim.tbl_deep_extend("force", defaults, opts)
 
   require('codecompanion').setup(opts)
-  -- Apply the group re-add workaround after CodeCompanion initializes internals.
-  apply_tool_registry_group_readd_patch()
+
+  -- Monkey-patches (plugins.codecompanion.patches.*)
+  require('plugins.codecompanion.patches.tool_registry_stale_group').setup()  -- stale group 상태에서 동일 그룹 재추가 허용
+  require('plugins.codecompanion.patches.history_preprocess').setup()         -- history 복원 시 human_tool 메시지 변환 및 model/settings 보정
+  require('plugins.codecompanion.patches.openai_tool_call_id').setup()        -- tool response 매칭 시 call_id fallback (call_id or id)
+  require('plugins.codecompanion.patches.orchestrator_streaming').setup()     -- 셸 커맨드 실행 시 stdout streaming floating window
+
+  -- Non-patch setups
   require('plugins.codecompanion.utils.extmarks').setup()
   require('plugins.codecompanion.approval_handler').setup()
-  require('plugins.codecompanion.tools.human_tool.history_preprocess').setup()
 end
 
 return {
