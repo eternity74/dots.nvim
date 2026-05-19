@@ -15,7 +15,6 @@
 --- - Does NOT modify saved JSON files
 --- - Only affects rendering when restoring from history
 
-local log = require("codecompanion.utils.log")
 
 local M = {}
 local did_setup = false
@@ -93,32 +92,6 @@ local function build_call_id_sets(messages)
   return human_tool_call_ids, responded_call_ids
 end
 
---- Collect pending human_tool calls from saved messages for replay on restore.
----@param messages table[]
----@return table[]
-function M.collect_pending_human_tool_calls(messages)
-  if not messages or #messages == 0 then
-    return {}
-  end
-
-  local copied = vim.deepcopy(messages)
-  fix_long_tool_call_ids(copied)
-
-  local _, responded_call_ids = build_call_id_sets(copied)
-  local pending_calls = {}
-
-  for _, msg in ipairs(copied) do
-    if msg.role == "llm" and msg.tools and msg.tools.calls then
-      for _, call in ipairs(msg.tools.calls) do
-        if call["function"] and call["function"].name == "human_tool" and is_pending_call(call, responded_call_ids) then
-          table.insert(pending_calls, call)
-        end
-      end
-    end
-  end
-
-  return pending_calls
-end
 
 --- Transform messages for history restore.
 ---@param messages table[] Array of chat messages
@@ -259,10 +232,7 @@ function M.setup()
     if ui_ok and history_ui.create_chat then
       local original_create_chat = history_ui.create_chat
       history_ui.create_chat = function(self, chat_data)
-        local pending_human_tool_calls = {}
-
         if chat_data and chat_data.messages then
-          pending_human_tool_calls = M.collect_pending_human_tool_calls(chat_data.messages)
           chat_data.messages = M.preprocess_messages(chat_data.messages)
         end
 
@@ -296,16 +266,6 @@ function M.setup()
             id = chat.id,
             model = chat.settings.model,
           })
-        end
-
-        if chat and pending_human_tool_calls and #pending_human_tool_calls > 0 then
-          vim.schedule(function()
-            if not (chat.tools and chat.tools.execute) then
-              return
-            end
-            log:info("[human_tool] Replaying %d pending human_tool call(s) from history restore", #pending_human_tool_calls)
-            chat.tools:execute(chat, pending_human_tool_calls)
-          end)
         end
 
         return chat
