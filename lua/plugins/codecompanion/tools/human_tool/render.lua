@@ -95,6 +95,42 @@ function M.build_header_lines(chat)
     table.insert(header_lines, string.format("### 🤖 LLM: %s", llm_label:gsub(" / ", " · ")))
   end
 
+  -- Context Window usage
+  if chat and chat.adapter then
+    local context_window = nil
+    local adapter = chat.adapter
+    
+    -- Try to get context_window from adapter schema
+    if adapter.schema and adapter.schema.model then
+      local model_name = adapter.schema.model.default
+      if type(model_name) == "function" then
+        model_name = model_name(adapter)
+      end
+      local choices = adapter.schema.model.choices
+      if type(choices) == "function" then
+        choices = choices(adapter, { async = true })
+      end
+      if model_name and type(choices) == "table" and choices[model_name] then
+        local choice = choices[model_name]
+        if choice.meta and choice.meta.context_window then
+          context_window = choice.meta.context_window
+        end
+      end
+    end
+    
+    -- If we found context_window and have messages, display it
+    if context_window and context_window > 0 and chat.messages then
+      local tokens_mod = require("codecompanion.utils.tokens")
+      local used_tokens = tokens_mod.get_tokens(chat.messages)
+      local pct = (used_tokens / context_window) * 100
+      local bar = build_usage_bar(used_tokens, context_window, 10)
+      table.insert(
+        header_lines,
+        string.format("### 📊 Context [%s] %d/%d (%.1f%%)", bar, used_tokens, context_window, pct)
+      )
+    end
+  end
+
   table.insert(header_lines, "")
   return header_lines
 end

@@ -16,6 +16,8 @@
 --- - Only affects rendering when restoring from history
 
 
+local log = require("codecompanion.utils.log")
+
 local M = {}
 local did_setup = false
 
@@ -262,8 +264,10 @@ end
 --- and TitleGenerator:generate to filter out _meta.tag messages
 function M.setup()
   if did_setup then
+    log:debug("[cc_patch][history_preprocess] setup skipped (already applied)")
     return
   end
+  log:debug("[cc_patch][history_preprocess] setup start")
   did_setup = true
 
   vim.defer_fn(function()
@@ -271,6 +275,7 @@ function M.setup()
     local ui_ok, history_ui = pcall(require, "codecompanion._extensions.history.ui")
     if ui_ok and history_ui.create_chat then
       local original_create_chat = history_ui.create_chat
+      log:info("[cc_patch][history_preprocess] patched history ui:create_chat")
       history_ui.create_chat = function(self, chat_data)
         if chat_data and chat_data.messages then
           local adapter_name = chat_data.adapter and chat_data.adapter.name or nil
@@ -327,7 +332,9 @@ function M.setup()
     local tg_ok, TitleGenerator = pcall(require, "codecompanion._extensions.history.title_generator")
     if tg_ok and TitleGenerator.generate then
       local original_generate = TitleGenerator.generate
+      log:info("[cc_patch][history_preprocess] patched title_generator:generate")
       TitleGenerator.generate = function(self, chat, callback, is_refresh)
+
         local patched = {}
         for _, msg in ipairs(chat.messages or {}) do
           if msg._meta and msg._meta.tag and not (msg.opts and msg.opts.tag) then

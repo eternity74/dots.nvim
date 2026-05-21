@@ -17,7 +17,7 @@ return {
       title_generation_opts = {
         adapter = "copilot",
         model = "gpt-5-mini",
-        refresh_every_n_propmts = 3,
+        refresh_every_n_prompts = 3,
         max_refreshes = 3,
         format_title = function(original_title)
           return original_title

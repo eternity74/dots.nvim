@@ -81,8 +81,21 @@ The user is working on a %s machine. Please respond with system specific command
             ctx.os
           )
       end,
+      context_management = {
+        enabled = true,
+        trigger = 0.75,
+      },
     },
     streaming = true,
+    slash_commands = {
+      handoff = {
+        path = "plugins.codecompanion.slash_commands.handoff",
+        description = "Generate a handoff document, clear messages, and inject handoff as system context",
+        opts = {
+          contains_code = false,
+        },
+      },
+    },
     keymaps = {
       send = {
         modes = { n = "<C-s>", i = "<C-s>" },
@@ -163,8 +176,20 @@ local cc_config = function(_, opts)
     -- DISPLAY OPTIONS ---------------------------------------------------
     display = {
       chat = {
+        show_token_count = true,
+        token_count = function(tokens, adapter)
+          local context_window = nil
+          pcall(function()
+            context_window = adapter.schema.model.choices[adapter.schema.model.default].meta.context_window
+          end)
+          if context_window then
+            local pct = math.floor((tokens / context_window) * 100)
+            return string.format(" (Context Window: %d/%d (%d%%))", tokens, context_window, pct)
+          end
+          return string.format(" (%d tokens)", tokens)
+        end,
         icons = {
-          pinned_buffer = " ",
+          pinned_buffer = " ",
           watched_buffer = "👀 ",
         },
         window = {

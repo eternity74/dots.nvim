@@ -1,5 +1,7 @@
 --- Monkey-patch: Add streaming floating window to shell command tool execution.
 --- Shows real-time stdout in a floating window while tools run shell commands.
+local log = require("codecompanion.utils.log")
+
 local M = {}
 
 local did_setup = false
@@ -141,19 +143,28 @@ end
 
 function M.setup()
   if did_setup then
+    log:debug("[cc_patch][orchestrator_streaming] setup skipped (already applied)")
     return
   end
+  log:debug("[cc_patch][orchestrator_streaming] setup start")
   did_setup = true
 
   vim.defer_fn(function()
     local ok, Orchestrator = pcall(require, "codecompanion.interactions.chat.tools.orchestrator")
     if not ok or not Orchestrator then
+      log:warn("[cc_patch][orchestrator_streaming] orchestrator module not available; patch skipped")
       return
     end
 
     -- Patch setup_next_tool: before cmd_to_func_tool runs, convert cmd entries
     -- to streaming functions. cmd_to_func_tool skips entries that are already functions.
     local original_setup_next_tool = Orchestrator.setup_next_tool
+    if type(original_setup_next_tool) ~= "function" then
+      log:warn("[cc_patch][orchestrator_streaming] setup_next_tool is not a function; patch skipped")
+      return
+    end
+
+    log:info("[cc_patch][orchestrator_streaming] patched Orchestrator.setup_next_tool")
     Orchestrator.setup_next_tool = function(self, input)
       -- Let original pop from queue and call handlers.setup()
       -- But we need to intercept BEFORE cmd_to_func_tool is called.
