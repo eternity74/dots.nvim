@@ -55,6 +55,20 @@ local function expects_fc_prefix(adapter_name)
   return false
 end
 
+--- Resolve adapter name from history chat_data.adapter format.
+--- chat_data.adapter may be a string ("copilot") or a table ({ name = "copilot" }).
+---@param adapter any
+---@return string|nil
+local function resolve_adapter_name(adapter)
+  if type(adapter) == "string" and adapter ~= "" then
+    return adapter
+  end
+  if type(adapter) == "table" and type(adapter.name) == "string" and adapter.name ~= "" then
+    return adapter.name
+  end
+  return nil
+end
+
 --- Normalize tool_call ID prefix for GPT models that expect 'fc_' instead of 'call_'.
 ---@param messages table[] Array of chat messages
 ---@param to_fc boolean If true, convert call_ → fc_; if false, do nothing
@@ -65,13 +79,33 @@ local function fix_tool_call_id_prefix(messages, to_fc)
 
   local id_map = {}
 
+  local function normalize_id(id)
+    if type(id) ~= "string" then
+      return id
+    end
+    if id:sub(1, 5) ~= "call_" then
+      return id
+    end
+
+    if not id_map[id] then
+      id_map[id] = "fc_" .. id:sub(6)
+    end
+    return id_map[id]
+  end
+
   for _, msg in ipairs(messages) do
-    if msg.tools and msg.tools.calls then
-      for _, call in ipairs(msg.tools.calls) do
-        if call.id and call.id:sub(1, 5) == "call_" then
-          local new_id = "fc_" .. call.id:sub(6)
-          id_map[call.id] = new_id
-          call.id = new_id
+    local calls = nil
+    if msg.tools and type(msg.tools.calls) == "table" then
+      calls = msg.tools.calls
+    elseif type(msg.tool_calls) == "table" then
+      calls = msg.tool_calls
+    end
+
+    if calls then
+      for _, call in ipairs(calls) do
+        if type(call) == "table" then
+          call.id = normalize_id(call.id)
+          call.call_id = normalize_id(call.call_id)
         end
       end
     end
@@ -80,6 +114,9 @@ local function fix_tool_call_id_prefix(messages, to_fc)
   for _, msg in ipairs(messages) do
     if msg.tools and msg.tools.call_id and id_map[msg.tools.call_id] then
       msg.tools.call_id = id_map[msg.tools.call_id]
+    end
+    if msg.tool_call_id and id_map[msg.tool_call_id] then
+      msg.tool_call_id = id_map[msg.tool_call_id]
     end
   end
 end
@@ -264,10 +301,8 @@ end
 --- and TitleGenerator:generate to filter out _meta.tag messages
 function M.setup()
   if did_setup then
-    log:debug("[cc_patch][history_preprocess] setup skipped (already applied)")
     return
   end
-  log:debug("[cc_patch][history_preprocess] setup start")
   did_setup = true
 
   vim.defer_fn(function()
@@ -278,7 +313,7 @@ function M.setup()
       log:info("[cc_patch][history_preprocess] patched history ui:create_chat")
       history_ui.create_chat = function(self, chat_data)
         if chat_data and chat_data.messages then
-          local adapter_name = chat_data.adapter and chat_data.adapter.name or nil
+          local adapter_name = resolve_adapter_name(chat_data.adapter)
           chat_data.messages = M.preprocess_messages(chat_data.messages, { adapter_name = adapter_name })
         end
 

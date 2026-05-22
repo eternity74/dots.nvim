@@ -1,7 +1,8 @@
+local config = require("codecompanion.config")
 local context_mod = require("plugins.codecompanion.tools.human_tool.context")
 local render_mod = require("plugins.codecompanion.tools.human_tool.render")
 local window_mod = require("plugins.codecompanion.tools.human_tool.window")
-local log = require("codecompanion.utils.log")
+local handoff_command = require("plugins.codecompanion.slash_commands.handoff")
 
 local M = {}
 
@@ -26,10 +27,27 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 })
 
 local HEADER_TITLE = "## 💬 Human Tool Input"
+local NOTICE_THRESHOLD_PCT = 70
+local AUTO_HANDOFF_THRESHOLD_PCT = 85
+local context_notice_state = {
+  warned = {},
+  auto_handoff = {},
+}
 local pending_output_cb
 local active_chat -- the chat object when human_tool is active
 local header_start_line -- 0-indexed line where our section starts in the chat buffer
 local header_line_count -- number of header + context lines inserted
+
+local function append_notice_to_chat(chat, message)
+  if not chat or type(chat.add_buf_message) ~= "function" then
+    return
+  end
+
+  chat:add_buf_message({
+    role = config.constants.LLM_ROLE,
+    content = message,
+  })
+end
 
 ---@return function|nil
 function M.get_pending_cb()
@@ -64,8 +82,76 @@ function M.get_header_line_count()
   return header_line_count or 0
 end
 
+local function notify_context_threshold(chat, usage)
+  if not chat or not usage then
+    return
+  end
+
+  local chat_id = tostring(chat.id or chat.bufnr or "unknown")
+  local pct = usage.pct_display or usage.pct or 0
+
+  if pct >= NOTICE_THRESHOLD_PCT and not context_notice_state.warned[chat_id] then
+    context_notice_state.warned[chat_id] = true
+    append_notice_to_chat(
+      chat,
+      string.format(
+        "⚠️ CodeCompanion context usage is %.1f%% (%d/%d). Consider running /handoff.",
+        pct,
+        usage.used_tokens,
+        usage.context_window
+      )
+    )
+  end
+
+  if pct >= AUTO_HANDOFF_THRESHOLD_PCT and not context_notice_state.auto_handoff[chat_id] then
+    context_notice_state.auto_handoff[chat_id] = true
+    vim.schedule(function()
+      if not chat or not chat.bufnr or not vim.api.nvim_buf_is_valid(chat.bufnr) then
+        return
+      end
+
+      local cmd = handoff_command.new({
+        Chat = chat,
+        config = {},
+        context = {
+          bufnr = chat.bufnr,
+          handoff_args_override = "",
+        },
+      })
+      cmd:execute()
+
+      append_notice_to_chat(
+        chat,
+        string.format(
+          "⚠️ CodeCompanion context usage is %.1f%% (%d/%d). Auto-running /handoff.",
+          pct,
+          usage.used_tokens,
+          usage.context_window
+        )
+      )
+    end)
+  end
+end
+
+local function reset_context_threshold_state_if_needed(chat, usage)
+  if not chat then
+    return
+  end
+
+  local chat_id = tostring(chat.id or chat.bufnr or "unknown")
+  local pct = usage and (usage.pct_display or usage.pct) or 0
+
+  if pct < NOTICE_THRESHOLD_PCT then
+    context_notice_state.warned[chat_id] = nil
+  end
+
+  if pct < AUTO_HANDOFF_THRESHOLD_PCT then
+    context_notice_state.auto_handoff[chat_id] = nil
+  end
+end
+
 ---Submit the user's input from the chat buffer
----@return nil
+---@return boolean
 function M.submit()
   if not pending_output_cb then
     return false
@@ -135,6 +221,70 @@ function M.submit()
   return true
 end
 
+---Submit programmatically without rendering the input text in chat buffer
+---@param user_input string
+---@return boolean
+function M.submit_silent(user_input)
+  if not pending_output_cb then
+    return false
+  end
+  if not active_chat or not active_chat.bufnr or not vim.api.nvim_buf_is_valid(active_chat.bufnr) then
+    pending_output_cb = nil
+    active_chat = nil
+    header_start_line = nil
+    header_line_count = nil
+    return false
+  end
+
+  local chat = active_chat
+  local bufnr = chat.bufnr
+
+  -- Sync context from header section (same behavior as normal submit)
+  local all_lines = vim.api.nvim_buf_get_lines(bufnr, header_start_line, -1, false)
+  local header_trim = vim.trim(context_mod.header)
+  local context_end = 0
+  for i, line in ipairs(all_lines) do
+    local trimmed = vim.trim(line)
+    if trimmed == HEADER_TITLE
+      or trimmed == ""
+      or trimmed == header_trim
+      or line:sub(1, 2) == "> "
+    then
+      context_end = i
+    end
+  end
+  context_mod.sync(chat, bufnr, { start = header_start_line, finish = header_start_line + context_end })
+
+  local final_input = vim.trim(tostring(user_input or ""))
+  if final_input == "" then
+    final_input = "(User submitted an empty response)"
+  end
+
+  local ns = vim.api.nvim_create_namespace("HumanToolInput")
+  vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+
+  local was_modifiable = vim.api.nvim_get_option_value("modifiable", { buf = bufnr })
+  if not was_modifiable then
+    vim.api.nvim_set_option_value("modifiable", true, { buf = bufnr })
+  end
+  vim.api.nvim_buf_set_lines(bufnr, header_start_line, -1, false, {})
+  if not was_modifiable then
+    vim.api.nvim_set_option_value("modifiable", false, { buf = bufnr })
+  end
+
+  local cb = pending_output_cb
+  pending_output_cb = nil
+  active_chat = nil
+  header_start_line = nil
+  header_line_count = nil
+
+  vim.schedule(function()
+    cb({ status = "success", data = final_input })
+  end)
+
+  return true
+end
+
 ---Open the input section in the chat buffer (no separate window)
 ---@param chat table
 ---@param _prompt string
@@ -147,6 +297,10 @@ function M.open(chat, _prompt, output_cb)
   if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
     return
   end
+
+  local usage = render_mod.get_context_usage(chat)
+  reset_context_threshold_state_if_needed(chat, usage)
+  notify_context_threshold(chat, usage)
 
   -- Build header and context lines (these are the "header" we skip on submit)
   local header_lines = { "", "## 💬 Human Tool Input", "" }

@@ -8,10 +8,8 @@ local did_setup = false
 
 function M.setup()
   if did_setup then
-    log:debug("[cc_patch][openai_tool_call_id] setup skipped (already applied)")
     return
   end
-  log:debug("[cc_patch][openai_tool_call_id] setup start")
   did_setup = true
 
   vim.defer_fn(function()

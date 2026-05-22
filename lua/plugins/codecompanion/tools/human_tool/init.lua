@@ -47,7 +47,6 @@ local M = {
     ---@param opts { input: any, output_cb: fun(result: table) }
     ---@return nil
     function(self, args, opts)
-      log:debug("HumanTool called with opts: %s", vim.inspect(opts))
       local llm_response = tostring(args.input or "")
       local output_cb = opts.output_cb
 
@@ -180,12 +179,8 @@ local M = {
         end
       end)
 
-      log:debug("[wanchang] HumanTool success with self.function_call.call_id: %s", self.function_call.call_id)
-      log:debug("[wanchang] output_message (to llm): %s", output_message)
-      log:debug("[wanchang] buffer_message (chat only): %s", buffer_message)
       local user_role = config.interactions.chat.roles and config.interactions.chat.roles.user or "User"
       local display_text = string.format("**💬 Human Tool(%s)**\n\n%s", user_role, buffer_message)
-      log:debug("[wanchang] display_text: %s", display_text)
       return chat:add_tool_output(self, output_message, display_text)
     end,
 
@@ -193,7 +188,21 @@ local M = {
     ---@param stderr table
     ---@param meta { tools: CodeCompanion.Tools, cmd: table }
     error = function(self, stderr, meta)
-      return vim.notify("HumanTool An error occurred", vim.log.levels.ERROR)
+      local chat = meta and meta.tools and meta.tools.chat or nil
+      local err_text = "HumanTool error occurred"
+      if type(stderr) == "table" and #stderr > 0 then
+        err_text = err_text .. ":\n" .. table.concat(stderr, "\n")
+      end
+
+      if chat then
+        vim.schedule(function()
+          chat:add_buf_message({
+            role = config.constants.LLM_ROLE,
+            content = "⚠️ " .. err_text,
+          })
+        end)
+      end
+      return nil
     end,
   },
 }

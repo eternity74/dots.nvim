@@ -38,6 +38,61 @@ local function get_copilot_stats()
   return json
 end
 
+local function get_context_window_from_adapter(adapter)
+  if not adapter or not adapter.schema or not adapter.schema.model then
+    return nil
+  end
+
+  local model_name = adapter.schema.model.default
+  if type(model_name) == "function" then
+    model_name = model_name(adapter)
+  end
+
+  local choices = adapter.schema.model.choices
+  if type(choices) == "function" then
+    choices = choices(adapter, { async = true })
+  end
+
+  if model_name and type(choices) == "table" and choices[model_name] then
+    local choice = choices[model_name]
+    if choice.meta and choice.meta.context_window then
+      return choice.meta.context_window
+    end
+  end
+
+  -- Fallback: adapter가 이미 resolve한 model info를 우선 재사용
+  if adapter.model and adapter.model.info and adapter.model.info.meta and adapter.model.info.meta.context_window then
+    return adapter.model.info.meta.context_window
+  end
+
+  return nil
+end
+
+---@param chat table|nil
+---@return table|nil
+function M.get_context_usage(chat)
+  if not chat or not chat.adapter or not chat.messages then
+    return nil
+  end
+
+  local context_window = get_context_window_from_adapter(chat.adapter)
+  if not context_window or context_window <= 0 then
+    return nil
+  end
+
+  local tokens_mod = require("codecompanion.utils.tokens")
+  local used_tokens = tokens_mod.get_tokens(chat.messages)
+  local pct = (used_tokens / context_window) * 100
+  local pct_display = math.floor((pct * 10) + 0.5) / 10
+
+  return {
+    used_tokens = used_tokens,
+    context_window = context_window,
+    pct = pct,
+    pct_display = pct_display,
+  }
+end
+
 ---@param chat table|nil
 ---@return string[]
 function M.build_header_lines(chat)
@@ -96,39 +151,13 @@ function M.build_header_lines(chat)
   end
 
   -- Context Window usage
-  if chat and chat.adapter then
-    local context_window = nil
-    local adapter = chat.adapter
-    
-    -- Try to get context_window from adapter schema
-    if adapter.schema and adapter.schema.model then
-      local model_name = adapter.schema.model.default
-      if type(model_name) == "function" then
-        model_name = model_name(adapter)
-      end
-      local choices = adapter.schema.model.choices
-      if type(choices) == "function" then
-        choices = choices(adapter, { async = true })
-      end
-      if model_name and type(choices) == "table" and choices[model_name] then
-        local choice = choices[model_name]
-        if choice.meta and choice.meta.context_window then
-          context_window = choice.meta.context_window
-        end
-      end
-    end
-    
-    -- If we found context_window and have messages, display it
-    if context_window and context_window > 0 and chat.messages then
-      local tokens_mod = require("codecompanion.utils.tokens")
-      local used_tokens = tokens_mod.get_tokens(chat.messages)
-      local pct = (used_tokens / context_window) * 100
-      local bar = build_usage_bar(used_tokens, context_window, 10)
-      table.insert(
-        header_lines,
-        string.format("### 📊 Context [%s] %d/%d (%.1f%%)", bar, used_tokens, context_window, pct)
-      )
-    end
+  local usage = M.get_context_usage(chat)
+  if usage then
+    local bar = build_usage_bar(usage.used_tokens, usage.context_window, 10)
+    table.insert(
+      header_lines,
+      string.format("### 📊 Context [%s] %d/%d (%.1f%%)", bar, usage.used_tokens, usage.context_window, usage.pct_display or usage.pct)
+    )
   end
 
   table.insert(header_lines, "")

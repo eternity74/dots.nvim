@@ -13,7 +13,6 @@ function M.setup()
     return
   end
   if ToolRegistry._patched_add_group_readd then
-    log:debug("[cc_patch][tool_registry_stale_group] setup skipped (already applied)")
     return
   end
 

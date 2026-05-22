@@ -143,10 +143,8 @@ end
 
 function M.setup()
   if did_setup then
-    log:debug("[cc_patch][orchestrator_streaming] setup skipped (already applied)")
     return
   end
-  log:debug("[cc_patch][orchestrator_streaming] setup start")
   did_setup = true
 
   vim.defer_fn(function()
